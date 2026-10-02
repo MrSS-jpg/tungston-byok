@@ -202,27 +202,25 @@ export default function App() {
         {messages.length === 0 && (
           <div className="h-full flex items-center justify-center">
             <div className="w-full max-w-2xl">
-              {/* Wordmark — same treatment as the dashboard hero */}
               <h1
                 className="relative w-fit"
-                style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(3rem, 12vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 0 20px' }}
+                style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 'clamp(3rem, 12vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 0 20px' }}
               >
-                BRING<br/>YOUR<br/>OWN KEY
+                BYOK
                 <span
                   className="absolute inset-0 text-transparent animate-flicker pointer-events-none"
                   style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(6px, 6px)', zIndex: -1 }}
                   aria-hidden="true"
-                >BRING<br/>YOUR<br/>OWN KEY</span>
+                >BYOK</span>
               </h1>
 
-              <p className="font-mono text-[clamp(0.95rem,2vw,1.15rem)] max-w-[42ch] mb-1.5 font-medium">
-                paste a key, pick a provider, talk directly — no server in between.
+              <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'clamp(0.95rem,2vw,1.15rem)', fontWeight: 500, maxWidth: '42ch', margin: '0 0 6px' }}>
+                bring your own key. run it straight through — no middleman, no markup.
               </p>
-              <p className="font-mono text-[0.85rem] text-[var(--tungsten-gray)] uppercase tracking-[0.06em] mb-8">
+              <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.85rem', color: 'var(--tungsten-gray)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 32px' }}>
                 {Object.keys(PROVIDERS).length} providers. zero data stored. 100% your browser.
               </p>
 
-              {/* Specsheet — mirrors dashboard specsheet section */}
               <div className="border-[3px] border-[var(--ink)] max-w-sm">
                 {[
                   ['MATERIAL', 'RAW API ACCESS'],
