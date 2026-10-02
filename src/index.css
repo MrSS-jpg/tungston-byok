@@ -16,6 +16,7 @@
 
   --shadow-hard: 6px 6px 0 var(--color-line);
   --shadow-hard-sm: 3px 3px 0 var(--color-line);
+  --shadow-glow: 0 0 18px rgba(255,168,92,0.45);
   
   --radius-sm: 0;
   --radius-md: 0;
@@ -24,6 +25,13 @@
   --radius-2xl: 0;
   --radius-3xl: 0;
   --radius-full: 0;
+
+  --animate-heat: heat 1.8s ease-in-out infinite;
+
+  @keyframes heat {
+    0%, 100% { opacity: 0.55; filter: brightness(0.9); }
+    50% { opacity: 1; filter: brightness(1.25); }
+  }
 }
 
 * { box-sizing: border-box; border-radius: 0 !important; }

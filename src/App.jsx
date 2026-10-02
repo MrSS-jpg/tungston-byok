@@ -1,6 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Key, Send, Bot, User, Zap, ChevronDown } from 'lucide-react';
+import { Key, Send, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+export function FilamentMark({ active = false, size = 28 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      className={active ? "animate-heat" : ""}
+      style={{ filter: active ? "drop-shadow(var(--shadow-glow))" : "none" }}
+    >
+      <rect x="3" y="3" width="34" height="34" fill={active ? "var(--color-accent)" : "var(--color-surface2)"} stroke="var(--color-line)" strokeWidth="3" />
+      <text x="6" y="12" fontSize="7" fontWeight="700" fill={active ? "var(--color-line)" : "var(--color-muted)"} fontFamily="var(--font-mono), monospace">
+        74
+      </text>
+      <text x="20" y="31" textAnchor="middle" fontSize="20" fill={active ? "var(--color-line)" : "var(--color-ink)"} fontFamily="var(--font-display), sans-serif">
+        W
+      </text>
+    </svg>
+  );
+}
 
 const PROVIDERS = {
   nara: { name: 'Nara Router', model: 'agnes-2.5-flash', url: 'https://corsproxy.io/?https://router.bynara.id/v1/chat/completions', isOpenAI: true },
@@ -28,7 +48,7 @@ function detectProvider(rawKey) {
   if (key.startsWith('nvapi-')) return 'nvidia';
   if (key.startsWith('bytez:')) return 'bytez';
   if (key.startsWith('sk-or-v1-')) return 'openrouter';
-  return null; // Return null so user can select
+  return null;
 }
 
 export default function App() {
@@ -130,123 +150,125 @@ export default function App() {
 
       setMessages([...newMessages, { role: 'assistant', content: resultText }]);
     } catch (err) {
-      setMessages([...newMessages, { role: 'assistant', content: `**ERROR:** \`${err.message}\`` }]);
+      setMessages([...newMessages, { role: 'assistant', content: `Something went wrong: \`${err.message}\`` }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--color-base)] text-[var(--color-ink)]">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b-2 border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 md:px-8 shrink-0">
-        <div className="flex items-center gap-3">
-          <Zap className="text-[var(--color-accent)]" size={24} />
-          <h1 className="font-[var(--font-display)] text-xl uppercase tracking-wider hidden sm:block">Tungston BYOK</h1>
-        </div>
+    <div className="flex h-screen overflow-hidden bg-[var(--color-base)] text-[var(--color-ink)]">
+      <main className="flex min-w-0 flex-1 flex-col">
+        {/* Header */}
+        <header className="flex items-center justify-between border-b-2 border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 md:px-8">
+          <div className="flex items-center gap-3">
+            <FilamentMark size={32} />
+            <span className="font-[var(--font-display)] text-lg uppercase leading-none tracking-tight hidden sm:inline-block">Tungston BYOK</span>
+          </div>
 
-        <div className="flex items-center gap-3 flex-1 justify-end max-w-xl">
-          <div className="relative flex-1 group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Key className="w-4 h-4 text-[var(--color-muted)]" />
+          <div className="flex items-center gap-3 flex-1 justify-end max-w-xl">
+            <div className="relative flex-1 group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Key className="w-4 h-4 text-[var(--color-muted)]" />
+              </div>
+              <input
+                type="password"
+                placeholder="Paste API key..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="w-full pl-10 pr-4 py-1.5 border-2 border-[var(--color-line)] bg-[var(--color-base)] text-[var(--color-ink)] font-mono text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-0 shadow-[var(--shadow-hard-sm)] transition-shadow"
+              />
             </div>
-            <input
-              type="password"
-              placeholder="Paste any API key..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border-2 border-[var(--color-line)] bg-[var(--color-surface2)] text-[var(--color-ink)] font-mono text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-0 shadow-[var(--shadow-hard-sm)] transition-shadow"
-            />
-          </div>
-          
-          <div className="relative">
-            <select
-              value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
-              className="appearance-none border-2 border-[var(--color-line)] bg-[var(--color-surface2)] text-[var(--color-ink)] px-4 py-2 pr-10 font-mono text-sm uppercase font-bold focus:outline-none cursor-pointer shadow-[var(--shadow-hard-sm)]"
-            >
-              <option value="auto">Auto-Detect</option>
-              {Object.entries(PROVIDERS).map(([k, p]) => (
-                <option key={k} value={k}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Chat Area */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
-            <div className="bg-[var(--color-surface)] border-2 border-[var(--color-line)] p-8 shadow-[var(--shadow-hard)]">
-              <Zap className="w-12 h-12 text-[var(--color-accent)] mx-auto mb-4" />
-              <h2 className="font-[var(--font-display)] text-2xl uppercase mb-2">Secure Local Execution</h2>
-              <p className="font-mono text-sm text-[var(--color-muted)]">
-                All requests happen directly from your browser. Bring your own key from 14+ supported providers.
-              </p>
+            
+            <div className="relative">
+              <select
+                value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value)}
+                className="appearance-none border-2 border-[var(--color-line)] bg-[var(--color-base)] text-[var(--color-ink)] px-4 py-1.5 pr-10 font-mono text-sm uppercase font-bold focus:outline-none cursor-pointer shadow-[var(--shadow-hard-sm)]"
+              >
+                <option value="auto">Auto-Detect</option>
+                {Object.entries(PROVIDERS).map(([k, p]) => (
+                  <option key={k} value={k}>{p.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" />
             </div>
           </div>
-        )}
+        </header>
 
-        {messages.map((m, i) => (
-          <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-10 h-10 shrink-0 flex items-center justify-center border-2 border-[var(--color-line)] ${m.role === 'user' ? 'bg-[var(--color-accent)] text-[var(--color-base)] shadow-[var(--shadow-hard-sm)]' : 'bg-[var(--color-surface2)] shadow-[var(--shadow-hard-sm)]'}`}>
-              {m.role === 'user' ? <User size={20} /> : <Bot size={20} />}
+        {/* Chat Area */}
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-8">
+          {messages.length === 0 && (
+            <div className="flex h-full items-center justify-center">
+              <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-[var(--color-line)] bg-[var(--color-surface)] p-8 text-center shadow-[var(--shadow-hard)]">
+                <FilamentMark size={56} />
+                <p className="font-[var(--font-display)] text-3xl uppercase leading-none text-[var(--color-ink)]">BYOK</p>
+                <p className="text-sm font-mono text-[var(--color-muted)]">Run entirely from your browser. Paste a key above, pick your provider, and start chatting.</p>
+              </div>
             </div>
-            <div className={`max-w-[85%] sm:max-w-[75%] border-2 border-[var(--color-line)] p-4 shadow-[var(--shadow-hard)] ${m.role === 'user' ? 'bg-[var(--color-surface)]' : 'bg-[var(--color-base)]'}`}>
-              {m.role === 'user' ? (
-                <div className="font-mono whitespace-pre-wrap">{m.content}</div>
-              ) : (
-                <div className="markdown font-mono text-sm leading-relaxed">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+          )}
+
+          {messages.map((m, i) => (
+            <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : ""}`}>
+              {m.role !== "user" && (
+                <div className="mt-0.5 shrink-0">
+                  <FilamentMark active={false} size={30} />
                 </div>
               )}
-            </div>
-          </div>
-        ))}
 
-        {loading && (
-          <div className="flex gap-4">
-            <div className="w-10 h-10 shrink-0 flex items-center justify-center border-2 border-[var(--color-line)] bg-[var(--color-surface2)] shadow-[var(--shadow-hard-sm)]">
-              <Bot size={20} className="animate-pulse" />
+              <div className={`max-w-[80%] border-2 border-[var(--color-line)] px-4 py-2.5 shadow-[var(--shadow-hard-sm)] ${m.role === "user" ? "bg-[var(--color-accent)] text-[var(--color-line)] font-medium" : "bg-[var(--color-surface)] text-[var(--color-ink)]"}`}>
+                {m.role === "user" ? (
+                  <div className="text-[15px] font-mono whitespace-pre-wrap">{m.content}</div>
+                ) : (
+                  <div className="markdown text-[15px] leading-relaxed">
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="border-2 border-[var(--color-line)] bg-[var(--color-base)] p-4 shadow-[var(--shadow-hard)] flex items-center gap-2">
-              <div className="w-2 h-2 bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} className="h-24" />
-      </main>
+          ))}
 
-      {/* Input Area */}
-      <footer className="p-4 md:p-8 bg-[var(--color-surface)] border-t-2 border-[var(--color-line)] shrink-0">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <textarea
-            rows="1"
-            placeholder={activeProvider ? `Chat with ${activeProvider.name}...` : "Paste a key to unlock..."}
-            disabled={!activeProvider}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            className="flex-1 bg-[var(--color-base)] border-2 border-[var(--color-line)] px-4 py-3 font-mono text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] shadow-[var(--shadow-hard-sm)] disabled:opacity-50 resize-none min-h-[52px]"
-          />
-          <button
-            onClick={handleSend}
-            disabled={!activeProvider || !input.trim() || loading}
-            className="bg-[var(--color-accent)] text-[var(--color-line)] border-2 border-[var(--color-line)] disabled:opacity-50 disabled:cursor-not-allowed px-4 transition-transform active:translate-x-[3px] active:translate-y-[3px] shadow-[var(--shadow-hard-sm)] active:shadow-none flex items-center justify-center min-h-[52px]"
-          >
-            <Send size={20} className="font-bold" />
-          </button>
+          {loading && (
+            <div className="flex gap-3">
+              <div className="mt-0.5 shrink-0">
+                <FilamentMark active={true} size={30} />
+              </div>
+              <div className="min-w-0 max-w-[80%] border-2 border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-2.5 shadow-[var(--shadow-hard-sm)]">
+                <span className="inline-block h-3 w-3 animate-heat bg-[var(--color-accent)]" />
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
-      </footer>
+
+        {/* Composer */}
+        <div className="border-t-2 border-[var(--color-line)] bg-[var(--color-base)] px-4 pb-5 pt-4 md:px-8">
+          <div className="flex items-end gap-2 border-2 border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-hard)]">
+            <textarea
+              rows={1}
+              placeholder={activeProvider ? `Chat with ${activeProvider.name}...` : "Paste a key to unlock..."}
+              disabled={!activeProvider}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2 text-[15px] text-[var(--color-ink)] placeholder:text-[var(--color-muted)] font-mono focus:outline-none disabled:opacity-50"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!activeProvider || !input.trim() || loading}
+              aria-label="Send message"
+              className="grid h-10 w-10 shrink-0 place-items-center border-2 border-[var(--color-line)] bg-[var(--color-accent)] text-[var(--color-line)] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
+            >
+              <Send size={18} strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
