@@ -1,42 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Key, Send, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-export function FilamentMark({ active = false, size = 28 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 40 40"
-      className={active ? "animate-heat" : ""}
-      style={{ filter: active ? "drop-shadow(var(--shadow-glow))" : "none" }}
-    >
-      <rect x="3" y="3" width="34" height="34" fill={active ? "var(--color-accent)" : "var(--color-surface2)"} stroke="var(--color-line)" strokeWidth="3" />
-      <text x="6" y="12" fontSize="7" fontWeight="700" fill={active ? "var(--color-line)" : "var(--color-muted)"} fontFamily="var(--font-mono), monospace">
-        74
-      </text>
-      <text x="20" y="31" textAnchor="middle" fontSize="20" fill={active ? "var(--color-line)" : "var(--color-ink)"} fontFamily="var(--font-display), sans-serif">
-        W
-      </text>
-    </svg>
-  );
-}
+/* ───────────────────── Provider registry ───────────────────── */
 
 const PROVIDERS = {
-  nara: { name: 'Nara Router', model: 'agnes-2.5-flash', url: 'https://corsproxy.io/?https://router.bynara.id/v1/chat/completions', isOpenAI: true },
-  anthropic: { name: 'Claude 3.5 Sonnet', model: 'claude-3-5-sonnet-20241022', url: 'https://corsproxy.io/?https://api.anthropic.com/v1/messages', isOpenAI: false },
-  openai: { name: 'GPT-4o', model: 'gpt-4o', url: 'https://api.openai.com/v1/chat/completions', isOpenAI: true },
-  gemini: { name: 'Gemini 3.7 Flash', model: 'gemini-3.7-flash', url: 'https://generativelanguage.googleapis.com/v1beta/models', isOpenAI: false },
-  groq: { name: 'Groq', model: 'llama-3.3-70b-versatile', url: 'https://api.groq.com/openai/v1/chat/completions', isOpenAI: true },
-  nvidia: { name: 'NVIDIA NIM', model: 'meta/llama-3.1-70b-instruct', url: 'https://corsproxy.io/?https://integrate.api.nvidia.com/v1/chat/completions', isOpenAI: true },
-  bytez: { name: 'Bytez', model: 'microsoft/Phi-4-mini-reasoning', url: 'https://corsproxy.io/?https://api.bytez.com/models/v2/openai/v1/chat/completions', isOpenAI: true },
-  openrouter: { name: 'OpenRouter', model: 'openrouter/free', url: 'https://openrouter.ai/api/v1/chat/completions', isOpenAI: true },
-  cerebras: { name: 'Cerebras', model: 'llama-3.3-70b', url: 'https://api.cerebras.ai/v1/chat/completions', isOpenAI: true },
-  mistral: { name: 'Mistral', model: 'mistral-large-latest', url: 'https://api.mistral.ai/v1/chat/completions', isOpenAI: true },
-  deepseek: { name: 'DeepSeek', model: 'deepseek-chat', url: 'https://api.deepseek.com/chat/completions', isOpenAI: true },
-  together: { name: 'Together AI', model: 'meta-llama/Llama-3-70b-chat-hf', url: 'https://api.together.xyz/v1/chat/completions', isOpenAI: true },
-  cohere: { name: 'Cohere', model: 'command-r-plus', url: 'https://corsproxy.io/?https://api.cohere.com/v1/chat', isOpenAI: false },
-  perplexity: { name: 'Perplexity', model: 'sonar-reasoning', url: 'https://api.perplexity.ai/chat/completions', isOpenAI: true }
+  nara:       { name: 'Nara Router',  code: 'NRA',  model: 'agnes-2.5-flash',               url: 'https://corsproxy.io/?https://router.bynara.id/v1/chat/completions', type: 'openai' },
+  openai:     { name: 'GPT-4o',       code: 'OAI',  model: 'gpt-4o',                         url: 'https://api.openai.com/v1/chat/completions',                         type: 'openai' },
+  anthropic:  { name: 'Claude',       code: 'ANT',  model: 'claude-3-5-sonnet-20241022',     url: 'https://corsproxy.io/?https://api.anthropic.com/v1/messages',        type: 'anthropic' },
+  gemini:     { name: 'Gemini',       code: 'GEM',  model: 'gemini-3.7-flash',               url: 'https://generativelanguage.googleapis.com/v1beta/models',            type: 'gemini' },
+  groq:       { name: 'Groq',         code: 'GRQ',  model: 'llama-3.3-70b-versatile',        url: 'https://api.groq.com/openai/v1/chat/completions',                    type: 'openai' },
+  mistral:    { name: 'Mistral',      code: 'MST',  model: 'mistral-large-latest',           url: 'https://api.mistral.ai/v1/chat/completions',                         type: 'openai' },
+  deepseek:   { name: 'DeepSeek',     code: 'DSK',  model: 'deepseek-chat',                  url: 'https://api.deepseek.com/chat/completions',                          type: 'openai' },
+  cerebras:   { name: 'Cerebras',     code: 'CRB',  model: 'llama-3.3-70b',                  url: 'https://api.cerebras.ai/v1/chat/completions',                        type: 'openai' },
+  together:   { name: 'Together AI',  code: 'TGR',  model: 'meta-llama/Llama-3-70b-chat-hf', url: 'https://api.together.xyz/v1/chat/completions',                       type: 'openai' },
+  perplexity: { name: 'Perplexity',   code: 'PPX',  model: 'sonar-reasoning',                url: 'https://api.perplexity.ai/chat/completions',                         type: 'openai' },
+  openrouter: { name: 'OpenRouter',   code: 'ORT',  model: 'openrouter/free',                url: 'https://openrouter.ai/api/v1/chat/completions',                      type: 'openai' },
+  nvidia:     { name: 'NVIDIA NIM',   code: 'NVD',  model: 'meta/llama-3.1-70b-instruct',    url: 'https://corsproxy.io/?https://integrate.api.nvidia.com/v1/chat/completions', type: 'openai' },
+  bytez:      { name: 'Bytez',        code: 'BTZ',  model: 'microsoft/Phi-4-mini-reasoning',  url: 'https://corsproxy.io/?https://api.bytez.com/models/v2/openai/v1/chat/completions', type: 'openai' },
+  cohere:     { name: 'Cohere',       code: 'CHR',  model: 'command-r-plus',                 url: 'https://corsproxy.io/?https://api.cohere.com/v1/chat',               type: 'cohere' },
 };
 
 function detectProvider(rawKey) {
@@ -51,17 +32,44 @@ function detectProvider(rawKey) {
   return null;
 }
 
+/* ───────────────────── Element Tag (W 74) ───────────────────── */
+
+function ElemTag() {
+  return (
+    <div className="inline-flex items-baseline gap-2 border-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-1.5 font-bold">
+      <span className="text-xl font-bold text-[var(--concrete)]">W</span>
+      <span className="text-[10px] text-[var(--tungsten-gray)]">74</span>
+      <span className="text-[11px] tracking-[0.12em] text-[var(--concrete)]">BYOK</span>
+    </div>
+  );
+}
+
+/* ───────────────────── Pulsing Status Dot ───────────────────── */
+
+function StatusDot({ label }) {
+  return (
+    <div className="flex items-center gap-2 text-xs tracking-wide">
+      <span className="inline-block w-2.5 h-2.5 bg-[var(--filament)] border-2 border-[var(--ink)] rounded-full animate-pulse-dot" style={{ boxShadow: '0 0 8px var(--filament)' }} />
+      <span className="font-semibold uppercase">{label}</span>
+    </div>
+  );
+}
+
+/* ───────────────────── Main App ───────────────────── */
+
 export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('tungston_key') || '');
-  const [selectedProvider, setSelectedProvider] = useState(() => localStorage.getItem('tungston_provider') || 'auto');
+  const [selectedProvider, setSelectedProvider] = useState(() => localStorage.getItem('tungston_provider') || '');
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showProviders, setShowProviders] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const detected = detectProvider(apiKey);
-  const activeProviderKey = selectedProvider === 'auto' ? (detected || 'nara') : selectedProvider;
-  const activeProvider = apiKey ? PROVIDERS[activeProviderKey] : null;
+  const activeKey = selectedProvider || detected || '';
+  const activeProvider = apiKey.trim() && activeKey ? PROVIDERS[activeKey] : null;
 
   useEffect(() => {
     localStorage.setItem('tungston_key', apiKey.trim());
@@ -72,6 +80,7 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  /* ── API call logic ── */
   const handleSend = async () => {
     if (!input.trim() || !activeProvider) return;
     const userText = input.trim();
@@ -81,67 +90,44 @@ export default function App() {
     setLoading(true);
 
     try {
-      let resultText = "";
+      let resultText = '';
       const key = apiKey.trim();
 
-      if (activeProvider.isOpenAI) {
+      if (activeProvider.type === 'openai') {
         const res = await fetch(activeProvider.url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model: activeProvider.model,
-            messages: newMessages
-          })
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model: activeProvider.model, messages: newMessages }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         resultText = data.choices[0].message.content;
-      } else if (activeProviderKey === 'gemini') {
+
+      } else if (activeProvider.type === 'gemini') {
         const res = await fetch(`${activeProvider.url}/${activeProvider.model}:generateContent?key=${key}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: newMessages.map(m => ({
-              role: m.role === 'user' ? 'user' : 'model',
-              parts: [{ text: m.content }]
-            }))
-          })
+          body: JSON.stringify({ contents: newMessages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })) }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         resultText = data.candidates[0].content.parts[0].text;
-      } else if (activeProviderKey === 'anthropic') {
+
+      } else if (activeProvider.type === 'anthropic') {
         const res = await fetch(activeProvider.url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': key,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: activeProvider.model,
-            max_tokens: 4096,
-            messages: newMessages.filter(m => m.role !== 'system')
-          })
+          headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: activeProvider.model, max_tokens: 4096, messages: newMessages.filter(m => m.role !== 'system') }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         resultText = data.content[0].text;
-      } else if (activeProviderKey === 'cohere') {
+
+      } else if (activeProvider.type === 'cohere') {
         const res = await fetch(activeProvider.url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model: activeProvider.model,
-            message: userText,
-            chat_history: messages.map(m => ({ role: m.role === 'user' ? 'USER' : 'CHATBOT', message: m.content }))
-          })
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model: activeProvider.model, message: userText, chat_history: messages.map(m => ({ role: m.role === 'user' ? 'USER' : 'CHATBOT', message: m.content })) }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
@@ -150,125 +136,165 @@ export default function App() {
 
       setMessages([...newMessages, { role: 'assistant', content: resultText }]);
     } catch (err) {
-      setMessages([...newMessages, { role: 'assistant', content: `Something went wrong: \`${err.message}\`` }]);
+      setMessages([...newMessages, { role: 'assistant', content: `**ERROR:** \`${err.message}\`` }]);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ───────────────────── Render ───────────────────── */
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-base)] text-[var(--color-ink)]">
-      <main className="flex min-w-0 flex-1 flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b-2 border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3 md:px-8">
-          <div className="flex items-center gap-3">
-            <FilamentMark size={32} />
-            <span className="font-[var(--font-display)] text-lg uppercase leading-none tracking-tight hidden sm:inline-block">Tungston BYOK</span>
-          </div>
+    <div className="flex flex-col h-screen bg-[var(--base)] text-[var(--concrete)] relative">
+      <div className="grain" />
 
-          <div className="flex items-center gap-3 flex-1 justify-end max-w-xl">
-            <div className="relative flex-1 group focus-within:shadow-[var(--shadow-glow)] transition-shadow">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Key className="w-4 h-4 text-[var(--color-muted)]" />
-              </div>
-              <input
-                type="password"
-                placeholder="Paste API key..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="w-full pl-10 pr-4 py-1.5 border-2 border-[var(--color-line)] bg-[var(--color-base)] text-[var(--color-ink)] font-mono text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-0 shadow-[var(--shadow-hard-sm)] transition-shadow"
-              />
-            </div>
-            
-            <div className="relative hover:shadow-[var(--shadow-glow)] focus-within:shadow-[var(--shadow-glow)] transition-shadow">
-              <select
-                value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
-                className="appearance-none border-2 border-[var(--color-line)] bg-[var(--color-base)] text-[var(--color-ink)] px-4 py-1.5 pr-10 font-mono text-sm uppercase font-bold focus:outline-none focus:border-[var(--color-accent)] cursor-pointer shadow-[var(--shadow-hard-sm)] hover:bg-[var(--color-line)] hover:text-[var(--color-accent)] transition-colors"
+      {/* ── Topbar ── */}
+      <header className="flex items-center justify-between px-4 py-4 md:px-6 border-b-[3px] border-[var(--ink)] shrink-0 flex-wrap gap-3">
+        <ElemTag />
+        <div className="flex items-center gap-4">
+          {activeProvider && <StatusDot label={`${activeProvider.name} connected`} />}
+          {!activeProvider && apiKey.trim() && <span className="text-xs text-[var(--tungsten-gray)] uppercase tracking-wide">Select a provider ↓</span>}
+        </div>
+      </header>
+
+      {/* ── Key Input Bar ── */}
+      <div className="border-b-[3px] border-[var(--ink)] px-4 py-3 md:px-6 bg-[var(--surface)] flex items-center gap-3 flex-wrap shrink-0">
+        <span className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase shrink-0">API KEY</span>
+        <input
+          type="password"
+          placeholder="Paste any API key..."
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          className="flex-1 min-w-[200px] bg-[var(--base)] border-[3px] border-[var(--ink)] px-4 py-2 font-mono text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] focus:border-[var(--filament)] focus:shadow-[var(--shadow-glow)] transition-all"
+        />
+        <button
+          onClick={() => setShowProviders(!showProviders)}
+          className="border-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:shadow-[var(--shadow-glow)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
+          style={{ boxShadow: '3px 3px 0 var(--ink)' }}
+        >
+          {showProviders ? '▲ HIDE' : '▼ PROVIDERS'}
+        </button>
+      </div>
+
+      {/* ── Provider Selector Grid ── */}
+      {showProviders && (
+        <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-4 py-4 md:px-6 shrink-0">
+          <p className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase mb-3">SELECT PROVIDER — {Object.keys(PROVIDERS).length} AVAILABLE</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-0">
+            {Object.entries(PROVIDERS).map(([key, p]) => (
+              <button
+                key={key}
+                onClick={() => { setSelectedProvider(key); setShowProviders(false); inputRef.current?.focus(); }}
+                className={`provider-card text-left ${activeKey === key ? 'active' : ''}`}
               >
-                <option value="auto">Auto-Detect</option>
-                {Object.entries(PROVIDERS).map(([k, p]) => (
-                  <option key={k} value={k}>{p.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" />
-            </div>
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--tungsten-gray)]">{p.code}</span>
+                  {activeKey === key && <span className="inline-block w-2 h-2 bg-[var(--filament)] border border-[var(--ink)]" style={{ boxShadow: '0 0 6px var(--filament)' }} />}
+                </div>
+                <span className="text-xs font-bold uppercase leading-tight block">{p.name}</span>
+              </button>
+            ))}
           </div>
-        </header>
+        </div>
+      )}
 
-        {/* Chat Area */}
-        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-8">
-          {messages.length === 0 && (
-            <div className="flex h-full items-center justify-center">
-              <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-[var(--color-line)] bg-[var(--color-surface)] p-8 text-center shadow-[var(--shadow-hard)]">
-                <FilamentMark size={56} />
-                <p className="font-[var(--font-display)] text-3xl uppercase leading-none text-[var(--color-ink)]">BYOK</p>
-                <p className="text-sm font-mono text-[var(--color-muted)]">Run entirely from your browser. Paste a key above, pick your provider, and start chatting.</p>
+      {/* ── Chat Area ── */}
+      <main className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-6">
+        {messages.length === 0 && (
+          <div className="h-full flex items-center justify-center">
+            <div className="max-w-md text-center">
+              {/* Hero section like the dashboard */}
+              <h1 className="font-[var(--font-display)] text-[clamp(2.5rem,8vw,5rem)] leading-[0.9] mb-4 relative w-fit mx-auto">
+                BYOK
+                <span className="absolute inset-0 text-transparent animate-flicker" style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(4px, 4px)', zIndex: -1 }} aria-hidden="true">BYOK</span>
+              </h1>
+              <p className="font-mono text-sm text-[var(--concrete)] mb-2 font-medium">bring your own key. run it straight through.</p>
+              <p className="font-mono text-xs text-[var(--tungsten-gray)] uppercase tracking-[0.06em] mb-6">no middleman — no markup — your browser, your keys.</p>
+
+              {/* Specsheet */}
+              <div className="border-[3px] border-[var(--ink)] text-left mx-auto max-w-sm bg-[var(--surface)]">
+                <div className="flex justify-between px-4 py-2.5 text-xs border-b border-[var(--tungsten-gray)]">
+                  <span className="text-[var(--tungsten-gray)] font-semibold">PROVIDERS</span>
+                  <span>{Object.keys(PROVIDERS).length} SUPPORTED</span>
+                </div>
+                <div className="flex justify-between px-4 py-2.5 text-xs border-b border-[var(--tungsten-gray)]">
+                  <span className="text-[var(--tungsten-gray)] font-semibold">EXECUTION</span>
+                  <span>100% CLIENT-SIDE</span>
+                </div>
+                <div className="flex justify-between px-4 py-2.5 text-xs border-b border-[var(--tungsten-gray)]">
+                  <span className="text-[var(--tungsten-gray)] font-semibold">DATA STORED</span>
+                  <span>NOTHING — ZERO</span>
+                </div>
+                <div className="flex justify-between px-4 py-2.5 text-xs">
+                  <span className="text-[var(--tungsten-gray)] font-semibold">STATUS</span>
+                  <StatusDot label="READY" />
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : ""}`}>
-              {m.role !== "user" && (
-                <div className="mt-0.5 shrink-0">
-                  <FilamentMark active={false} size={30} />
+        {messages.map((m, i) => (
+          <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : ''}`}>
+            {m.role !== 'user' && (
+              <div className="shrink-0 mt-0.5 w-9 h-9 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs" style={{ boxShadow: '3px 3px 0 var(--ink)' }}>
+                {activeProvider?.code?.charAt(0) || 'W'}
+              </div>
+            )}
+            <div className={`max-w-[80%] border-[3px] border-[var(--ink)] px-4 py-3 ${m.role === 'user'
+              ? 'bg-[var(--filament)] text-[var(--ink)]'
+              : 'bg-[var(--surface)]'
+            }`} style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
+              {m.role === 'user' ? (
+                <div className="font-mono text-sm font-medium whitespace-pre-wrap">{m.content}</div>
+              ) : (
+                <div className="markdown font-mono text-sm leading-relaxed">
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
                 </div>
               )}
-
-              <div className={`max-w-[80%] border-2 border-[var(--color-line)] px-4 py-2.5 shadow-[var(--shadow-hard-sm)] ${m.role === "user" ? "bg-[var(--color-accent)] text-[var(--color-line)] font-medium" : "bg-[var(--color-surface)] text-[var(--color-ink)]"}`}>
-                {m.role === "user" ? (
-                  <div className="text-[15px] font-mono whitespace-pre-wrap">{m.content}</div>
-                ) : (
-                  <div className="markdown text-[15px] leading-relaxed">
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
-                  </div>
-                )}
-              </div>
             </div>
-          ))}
+          </div>
+        ))}
 
-          {loading && (
-            <div className="flex gap-3">
-              <div className="mt-0.5 shrink-0">
-                <FilamentMark active={true} size={30} />
-              </div>
-              <div className="min-w-0 max-w-[80%] border-2 border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-2.5 shadow-[var(--shadow-hard-sm)]">
-                <span className="inline-block h-3 w-3 animate-heat bg-[var(--color-accent)]" />
-              </div>
+        {loading && (
+          <div className="flex gap-4">
+            <div className="shrink-0 w-9 h-9 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center animate-heat" style={{ boxShadow: '0 0 12px var(--filament)' }}>
+              <span className="text-[var(--filament)] font-bold text-xs">{activeProvider?.code?.charAt(0) || 'W'}</span>
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 py-3 flex items-center gap-2" style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
+              <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} className="h-20" />
+      </main>
 
-        {/* Composer */}
-        <div className="border-t-2 border-[var(--color-line)] bg-[var(--color-base)] px-4 pb-5 pt-4 md:px-8">
-          <div className="flex items-end gap-2 border-2 border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-hard)] focus-within:shadow-[var(--shadow-glow)] focus-within:border-[var(--color-accent)] transition-all duration-300">
+      {/* ── Composer ── */}
+      <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 pb-4 pt-3 md:px-6 shrink-0">
+        <div className="flex items-end gap-3">
+          <div className="flex-1 border-[3px] border-[var(--ink)] bg-[var(--base)] p-2 focus-within:border-[var(--filament)] focus-within:shadow-[var(--shadow-glow)] transition-all" style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
             <textarea
+              ref={inputRef}
               rows={1}
-              placeholder={activeProvider ? `Chat with ${activeProvider.name}...` : "Paste a key to unlock..."}
+              placeholder={activeProvider ? `Talk to ${activeProvider.name}...` : 'Paste a key and pick a provider first...'}
               disabled={!activeProvider}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2 text-[15px] text-[var(--color-ink)] placeholder:text-[var(--color-muted)] font-mono focus:outline-none disabled:opacity-50"
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              className="w-full bg-transparent font-mono text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] focus:outline-none resize-none min-h-[2.5rem] max-h-40 disabled:opacity-40"
             />
-            <button
-              onClick={handleSend}
-              disabled={!activeProvider || !input.trim() || loading}
-              aria-label="Send message"
-              className="grid h-10 w-10 shrink-0 place-items-center border-2 border-[var(--color-line)] bg-[var(--color-accent)] text-[var(--color-line)] hover:bg-[var(--color-line)] hover:text-[var(--color-accent)] transition-colors enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
-            >
-              <Send size={18} strokeWidth={2} />
-            </button>
           </div>
+          <button
+            onClick={handleSend}
+            disabled={!activeProvider || !input.trim() || loading}
+            className="border-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[var(--shadow-glow)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
+            style={{ boxShadow: '3px 3px 0 var(--ink)' }}
+          >
+            SEND ↗
+          </button>
         </div>
-      </main>
+      </footer>
     </div>
   );
 }
