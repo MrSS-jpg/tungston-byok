@@ -68,12 +68,14 @@ export default function App() {
   const inputRef = useRef(null);
 
   const detected = detectProvider(apiKey);
-  const activeKey = selectedProvider || detected || '';
+  const activeKey = (selectedProvider && selectedProvider !== 'auto') ? selectedProvider : (detected || 'nara');
   const activeProvider = apiKey.trim() && activeKey ? PROVIDERS[activeKey] : null;
 
   useEffect(() => {
     localStorage.setItem('tungston_key', apiKey.trim());
-    localStorage.setItem('tungston_provider', selectedProvider);
+    if (selectedProvider && selectedProvider !== 'auto') {
+      localStorage.setItem('tungston_provider', selectedProvider);
+    }
   }, [apiKey, selectedProvider]);
 
   useEffect(() => {
@@ -201,10 +203,10 @@ export default function App() {
       <main className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-6">
         {messages.length === 0 && (
           <div className="h-full flex items-center justify-center">
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-2xl text-center">
               <h1
-                className="relative w-fit"
-                style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 'clamp(3rem, 12vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 0 20px' }}
+                className="relative w-fit mx-auto"
+                style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 'clamp(3rem, 12vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 auto 20px' }}
               >
                 BYOK
                 <span
@@ -214,14 +216,14 @@ export default function App() {
                 >BYOK</span>
               </h1>
 
-              <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'clamp(0.95rem,2vw,1.15rem)', fontWeight: 500, maxWidth: '42ch', margin: '0 0 6px' }}>
+              <p className="mx-auto" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'clamp(0.95rem,2vw,1.15rem)', fontWeight: 500, maxWidth: '42ch', margin: '0 auto 6px' }}>
                 bring your own key. run it straight through — no middleman, no markup.
               </p>
-              <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.85rem', color: 'var(--tungsten-gray)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 32px' }}>
+              <p className="mx-auto" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.85rem', color: 'var(--tungsten-gray)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 auto 32px' }}>
                 {Object.keys(PROVIDERS).length} providers. zero data stored. 100% your browser.
               </p>
 
-              <div className="border-[3px] border-[var(--ink)] max-w-sm">
+              <div className="border-[3px] border-[var(--ink)] max-w-sm mx-auto text-left bg-[var(--surface)]">
                 {[
                   ['MATERIAL', 'RAW API ACCESS'],
                   ['PROVIDERS', `${Object.keys(PROVIDERS).length} SUPPORTED`],
