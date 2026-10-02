@@ -201,33 +201,40 @@ export default function App() {
       <main className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-6">
         {messages.length === 0 && (
           <div className="h-full flex items-center justify-center">
-            <div className="max-w-md text-center">
-              {/* Hero section like the dashboard */}
-              <h1 className="font-[var(--font-display)] text-[clamp(2.5rem,8vw,5rem)] leading-[0.9] mb-4 relative w-fit mx-auto">
-                BYOK
-                <span className="absolute inset-0 text-transparent animate-flicker" style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(4px, 4px)', zIndex: -1 }} aria-hidden="true">BYOK</span>
+            <div className="w-full max-w-2xl">
+              {/* Wordmark — same treatment as the dashboard hero */}
+              <h1
+                className="relative w-fit"
+                style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(3rem, 12vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 0 20px' }}
+              >
+                BRING<br/>YOUR<br/>OWN KEY
+                <span
+                  className="absolute inset-0 text-transparent animate-flicker pointer-events-none"
+                  style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(6px, 6px)', zIndex: -1 }}
+                  aria-hidden="true"
+                >BRING<br/>YOUR<br/>OWN KEY</span>
               </h1>
-              <p className="font-mono text-sm text-[var(--concrete)] mb-2 font-medium">bring your own key. run it straight through.</p>
-              <p className="font-mono text-xs text-[var(--tungsten-gray)] uppercase tracking-[0.06em] mb-6">no middleman — no markup — your browser, your keys.</p>
 
-              {/* Specsheet */}
-              <div className="border-[3px] border-[var(--ink)] text-left mx-auto max-w-sm bg-[var(--surface)]">
-                <div className="flex justify-between px-4 py-2.5 text-xs border-b border-[var(--tungsten-gray)]">
-                  <span className="text-[var(--tungsten-gray)] font-semibold">PROVIDERS</span>
-                  <span>{Object.keys(PROVIDERS).length} SUPPORTED</span>
-                </div>
-                <div className="flex justify-between px-4 py-2.5 text-xs border-b border-[var(--tungsten-gray)]">
-                  <span className="text-[var(--tungsten-gray)] font-semibold">EXECUTION</span>
-                  <span>100% CLIENT-SIDE</span>
-                </div>
-                <div className="flex justify-between px-4 py-2.5 text-xs border-b border-[var(--tungsten-gray)]">
-                  <span className="text-[var(--tungsten-gray)] font-semibold">DATA STORED</span>
-                  <span>NOTHING — ZERO</span>
-                </div>
-                <div className="flex justify-between px-4 py-2.5 text-xs">
-                  <span className="text-[var(--tungsten-gray)] font-semibold">STATUS</span>
-                  <StatusDot label="READY" />
-                </div>
+              <p className="font-mono text-[clamp(0.95rem,2vw,1.15rem)] max-w-[42ch] mb-1.5 font-medium">
+                paste a key, pick a provider, talk directly — no server in between.
+              </p>
+              <p className="font-mono text-[0.85rem] text-[var(--tungsten-gray)] uppercase tracking-[0.06em] mb-8">
+                {Object.keys(PROVIDERS).length} providers. zero data stored. 100% your browser.
+              </p>
+
+              {/* Specsheet — mirrors dashboard specsheet section */}
+              <div className="border-[3px] border-[var(--ink)] max-w-sm">
+                {[
+                  ['MATERIAL', 'RAW API ACCESS'],
+                  ['PROVIDERS', `${Object.keys(PROVIDERS).length} SUPPORTED`],
+                  ['EXECUTION', 'CLIENT-SIDE ONLY'],
+                  ['DATA STORED', 'NOTHING — ZERO'],
+                ].map(([label, value], i, arr) => (
+                  <div key={label} className={`flex justify-between px-5 py-3 text-xs tracking-[0.04em] font-mono ${i < arr.length - 1 ? 'border-b border-[var(--tungsten-gray)]' : ''}`}>
+                    <span className="text-[var(--tungsten-gray)] font-semibold">{label}</span>
+                    <span>{value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -271,8 +278,8 @@ export default function App() {
       </main>
 
       {/* ── Composer ── */}
-      <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 pb-4 pt-3 md:px-6 shrink-0">
-        <div className="flex items-end gap-3">
+      <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 pb-0 pt-3 md:px-6 shrink-0">
+        <div className="flex items-end gap-3 pb-3">
           <div className="flex-1 border-[3px] border-[var(--ink)] bg-[var(--base)] p-2 focus-within:border-[var(--filament)] focus-within:shadow-[var(--shadow-glow)] transition-all" style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
             <textarea
               ref={inputRef}
@@ -293,6 +300,10 @@ export default function App() {
           >
             SEND ↗
           </button>
+        </div>
+        <div className="flex justify-between items-center py-2.5 border-t border-[var(--tungsten-gray)] text-[0.75rem] text-[var(--tungsten-gray)]">
+          <span>TUNGSTON BYOK — built raw, shipped straight.</span>
+          <span>{new Date().getFullYear()}</span>
         </div>
       </footer>
     </div>
