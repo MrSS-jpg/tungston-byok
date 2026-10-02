@@ -167,7 +167,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3 flex-1 justify-end max-w-xl">
-            <div className="relative flex-1 group">
+            <div className="relative flex-1 group focus-within:shadow-[var(--shadow-glow)] transition-shadow">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Key className="w-4 h-4 text-[var(--color-muted)]" />
               </div>
@@ -180,11 +180,11 @@ export default function App() {
               />
             </div>
             
-            <div className="relative">
+            <div className="relative hover:shadow-[var(--shadow-glow)] focus-within:shadow-[var(--shadow-glow)] transition-shadow">
               <select
                 value={selectedProvider}
                 onChange={(e) => setSelectedProvider(e.target.value)}
-                className="appearance-none border-2 border-[var(--color-line)] bg-[var(--color-base)] text-[var(--color-ink)] px-4 py-1.5 pr-10 font-mono text-sm uppercase font-bold focus:outline-none cursor-pointer shadow-[var(--shadow-hard-sm)]"
+                className="appearance-none border-2 border-[var(--color-line)] bg-[var(--color-base)] text-[var(--color-ink)] px-4 py-1.5 pr-10 font-mono text-sm uppercase font-bold focus:outline-none focus:border-[var(--color-accent)] cursor-pointer shadow-[var(--shadow-hard-sm)] hover:bg-[var(--color-line)] hover:text-[var(--color-accent)] transition-colors"
               >
                 <option value="auto">Auto-Detect</option>
                 {Object.entries(PROVIDERS).map(([k, p]) => (
@@ -243,7 +243,7 @@ export default function App() {
 
         {/* Composer */}
         <div className="border-t-2 border-[var(--color-line)] bg-[var(--color-base)] px-4 pb-5 pt-4 md:px-8">
-          <div className="flex items-end gap-2 border-2 border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-hard)]">
+          <div className="flex items-end gap-2 border-2 border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-hard)] focus-within:shadow-[var(--shadow-glow)] focus-within:border-[var(--color-accent)] transition-all duration-300">
             <textarea
               rows={1}
               placeholder={activeProvider ? `Chat with ${activeProvider.name}...` : "Paste a key to unlock..."}
@@ -262,7 +262,7 @@ export default function App() {
               onClick={handleSend}
               disabled={!activeProvider || !input.trim() || loading}
               aria-label="Send message"
-              className="grid h-10 w-10 shrink-0 place-items-center border-2 border-[var(--color-line)] bg-[var(--color-accent)] text-[var(--color-line)] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
+              className="grid h-10 w-10 shrink-0 place-items-center border-2 border-[var(--color-line)] bg-[var(--color-accent)] text-[var(--color-line)] hover:bg-[var(--color-line)] hover:text-[var(--color-accent)] transition-colors enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
             >
               <Send size={18} strokeWidth={2} />
             </button>
