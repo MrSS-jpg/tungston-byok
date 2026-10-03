@@ -44,10 +44,8 @@ function detectProvider(rawKey) {
 
 function ElemTag() {
   return (
-    <div className="inline-flex items-baseline gap-2 border-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-1.5 font-bold">
-      <span className="text-xl font-bold text-[var(--concrete)]">W</span>
-      <span className="text-[10px] text-[var(--tungsten-gray)]">74</span>
-      <span className="text-[11px] tracking-[0.12em] text-[var(--concrete)]">BYOK</span>
+    <div className="flex items-center">
+      <span className="font-display text-2xl md:text-3xl uppercase tracking-tighter text-[var(--concrete)]">BYOK</span>
     </div>
   );
 }
