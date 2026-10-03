@@ -174,11 +174,11 @@ export default function App() {
           placeholder="Paste any API key..."
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          className="flex-1 min-w-[200px] bg-[var(--base)] border-[3px] border-[var(--ink)] px-4 py-2 font-mono text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] focus:border-[var(--filament)] focus:shadow-[var(--shadow-glow)] transition-all"
+          className="flex-1 min-w-[160px] bg-[var(--base)] border-[3px] border-[var(--ink)] px-3 py-2 font-mono text-base md:text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] focus:border-[var(--filament)] focus:shadow-[var(--shadow-glow)] transition-all"
         />
         <button
           onClick={() => setShowProviders(!showProviders)}
-          className="border-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:shadow-[var(--shadow-glow)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
+          className="border-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:shadow-[var(--shadow-glow)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all shrink-0"
           style={{ boxShadow: '3px 3px 0 var(--ink)' }}
         >
           {showProviders ? '▲ HIDE' : '▼ PROVIDERS'}
@@ -187,7 +187,7 @@ export default function App() {
 
       {/* ── Provider Selector Grid ── */}
       {showProviders && (
-        <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-4 py-4 md:px-6 shrink-0">
+        <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-4 py-4 md:px-6 shrink-0 max-h-[60vh] overflow-y-auto">
           <p className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase mb-3">SELECT PROVIDER — {Object.keys(PROVIDERS).length} AVAILABLE</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-0">
             {Object.entries(PROVIDERS).map(([key, p]) => (
@@ -208,26 +208,26 @@ export default function App() {
       )}
 
       {/* ── Chat Area ── */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 md:px-6 space-y-6">
+      <main className="flex-1 overflow-y-auto px-3 py-5 md:px-6 md:py-6 space-y-5 md:space-y-6">
         {messages.length === 0 && (
-          <div className="h-full flex items-center justify-center">
-            <div className="w-full max-w-2xl text-center">
+          <div className="h-full flex items-center justify-center py-6">
+            <div className="w-full max-w-2xl text-center px-2">
               <h1
                 className="relative w-fit mx-auto"
-                style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 'clamp(3rem, 12vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 auto 20px' }}
+                style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 'clamp(2.5rem, 11vw, 8.5rem)', lineHeight: 0.9, letterSpacing: '-0.02em', margin: '0 auto 20px' }}
               >
                 BYOK
                 <span
                   className="absolute inset-0 text-transparent animate-flicker pointer-events-none"
-                  style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(6px, 6px)', zIndex: -1 }}
+                  style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(4px, 4px)', zIndex: -1 }}
                   aria-hidden="true"
                 >BYOK</span>
               </h1>
 
-              <p className="mx-auto" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'clamp(0.95rem,2vw,1.15rem)', fontWeight: 500, maxWidth: '42ch', margin: '0 auto 6px' }}>
+              <p className="mx-auto" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'clamp(0.9rem,2vw,1.15rem)', fontWeight: 500, maxWidth: '42ch', margin: '0 auto 6px' }}>
                 bring your own key. run it straight through — no middleman, no markup.
               </p>
-              <p className="mx-auto" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.85rem', color: 'var(--tungsten-gray)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 auto 32px' }}>
+              <p className="mx-auto" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem', color: 'var(--tungsten-gray)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 auto 28px' }}>
                 {Object.keys(PROVIDERS).length} providers. zero data stored. 100% your browser.
               </p>
 
@@ -238,7 +238,7 @@ export default function App() {
                   ['EXECUTION', 'CLIENT-SIDE ONLY'],
                   ['DATA STORED', 'NOTHING — ZERO'],
                 ].map(([label, value], i, arr) => (
-                  <div key={label} className={`flex justify-between px-5 py-3 text-xs tracking-[0.04em] font-mono ${i < arr.length - 1 ? 'border-b border-[var(--tungsten-gray)]' : ''}`}>
+                  <div key={label} className={`flex justify-between px-4 py-2.5 text-xs tracking-[0.04em] font-mono ${i < arr.length - 1 ? 'border-b border-[var(--tungsten-gray)]' : ''}`}>
                     <span className="text-[var(--tungsten-gray)] font-semibold">{label}</span>
                     <span>{value}</span>
                   </div>
@@ -249,20 +249,20 @@ export default function App() {
         )}
 
         {messages.map((m, i) => (
-          <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : ''}`}>
+          <div key={i} className={`flex gap-3 md:gap-4 ${m.role === 'user' ? 'justify-end' : ''}`}>
             {m.role !== 'user' && (
-              <div className="shrink-0 mt-0.5 w-9 h-9 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs" style={{ boxShadow: '3px 3px 0 var(--ink)' }}>
+              <div className="shrink-0 mt-0.5 w-8 h-8 md:w-9 md:h-9 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs" style={{ boxShadow: '2px 2px 0 var(--ink)' }}>
                 {activeProvider?.code?.charAt(0) || 'W'}
               </div>
             )}
-            <div className={`max-w-[80%] border-[3px] border-[var(--ink)] px-4 py-3 ${m.role === 'user'
+            <div className={`max-w-[88%] md:max-w-[80%] border-[3px] border-[var(--ink)] px-3.5 py-2.5 md:px-4 md:py-3 ${m.role === 'user'
               ? 'bg-[var(--filament)] text-[var(--ink)]'
               : 'bg-[var(--surface)]'
-            }`} style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
+            }`} style={{ boxShadow: '3px 3px 0 var(--ink)' }}>
               {m.role === 'user' ? (
-                <div className="font-mono text-sm font-medium whitespace-pre-wrap">{m.content}</div>
+                <div className="font-mono text-sm font-medium whitespace-pre-wrap break-words">{m.content}</div>
               ) : (
-                <div className="markdown font-mono text-sm leading-relaxed">
+                <div className="markdown font-mono text-sm leading-relaxed break-words">
                   <ReactMarkdown>{m.content}</ReactMarkdown>
                 </div>
               )}
@@ -271,45 +271,45 @@ export default function App() {
         ))}
 
         {loading && (
-          <div className="flex gap-4">
-            <div className="shrink-0 w-9 h-9 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center animate-heat" style={{ boxShadow: '0 0 12px var(--filament)' }}>
+          <div className="flex gap-3 md:gap-4">
+            <div className="shrink-0 w-8 h-8 md:w-9 md:h-9 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center animate-heat" style={{ boxShadow: '0 0 12px var(--filament)' }}>
               <span className="text-[var(--filament)] font-bold text-xs">{activeProvider?.code?.charAt(0) || 'W'}</span>
             </div>
-            <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 py-3 flex items-center gap-2" style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
+            <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 py-3 flex items-center gap-2" style={{ boxShadow: '3px 3px 0 var(--ink)' }}>
               <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} className="h-20" />
+        <div ref={messagesEndRef} className="h-16" />
       </main>
 
       {/* ── Composer ── */}
-      <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 pb-0 pt-3 md:px-6 shrink-0">
-        <div className="flex items-end gap-3 pb-3">
-          <div className="flex-1 border-[3px] border-[var(--ink)] bg-[var(--base)] p-2 focus-within:border-[var(--filament)] focus-within:shadow-[var(--shadow-glow)] transition-all" style={{ boxShadow: '4px 4px 0 var(--ink)' }}>
+      <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 pb-0 pt-2.5 md:px-6 shrink-0">
+        <div className="flex items-end gap-2 md:gap-3 pb-2.5">
+          <div className="flex-1 border-[3px] border-[var(--ink)] bg-[var(--base)] p-1.5 md:p-2 focus-within:border-[var(--filament)] focus-within:shadow-[var(--shadow-glow)] transition-all" style={{ boxShadow: '3px 3px 0 var(--ink)' }}>
             <textarea
               ref={inputRef}
               rows={1}
-              placeholder={activeProvider ? `Talk to ${activeProvider.name}...` : 'Paste a key and pick a provider first...'}
+              placeholder={activeProvider ? `Talk to ${activeProvider.name}...` : 'Paste a key and pick a provider...'}
               disabled={!activeProvider}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              className="w-full bg-transparent font-mono text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] focus:outline-none resize-none min-h-[2.5rem] max-h-40 disabled:opacity-40"
+              className="w-full bg-transparent font-mono text-base md:text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] focus:outline-none resize-none min-h-[2.3rem] max-h-36 disabled:opacity-40 leading-relaxed"
             />
           </div>
           <button
             onClick={handleSend}
             disabled={!activeProvider || !input.trim() || loading}
-            className="border-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-5 py-3 font-mono text-xs font-bold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[var(--shadow-glow)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
+            className="border-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-4 py-2.5 md:px-5 md:py-3 font-mono text-xs font-bold uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-[var(--shadow-glow)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all shrink-0"
             style={{ boxShadow: '3px 3px 0 var(--ink)' }}
           >
             SEND ↗
           </button>
         </div>
-        <div className="flex justify-between items-center py-2.5 border-t border-[var(--tungsten-gray)] text-[0.75rem] text-[var(--tungsten-gray)]">
+        <div className="flex justify-between items-center py-2 border-t border-[var(--tungsten-gray)] text-[0.7rem] md:text-[0.75rem] text-[var(--tungsten-gray)] flex-wrap gap-1">
           <span>TUNGSTON BYOK — built raw, shipped straight.</span>
           <span>{new Date().getFullYear()}</span>
         </div>
