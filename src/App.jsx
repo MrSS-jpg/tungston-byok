@@ -18,6 +18,11 @@ const PROVIDERS = {
   nvidia:     { name: 'NVIDIA NIM',   code: 'NVD',  model: 'meta/llama-3.1-70b-instruct',    url: 'https://corsproxy.io/?https://integrate.api.nvidia.com/v1/chat/completions', type: 'openai' },
   bytez:      { name: 'Bytez',        code: 'BTZ',  model: 'microsoft/Phi-4-mini-reasoning',  url: 'https://corsproxy.io/?https://api.bytez.com/models/v2/openai/v1/chat/completions', type: 'openai' },
   cohere:     { name: 'Cohere',       code: 'CHR',  model: 'command-r-plus',                 url: 'https://corsproxy.io/?https://api.cohere.com/v1/chat',               type: 'cohere' },
+  xai:        { name: 'xAI',          code: 'XAI',  model: 'grok-beta',                      url: 'https://api.x.ai/v1/chat/completions',                               type: 'openai' },
+  fireworks:  { name: 'Fireworks',    code: 'FWK',  model: 'accounts/fireworks/models/llama-v3p1-70b-instruct', url: 'https://api.fireworks.ai/inference/v1/chat/completions', type: 'openai' },
+  novita:     { name: 'Novita AI',    code: 'NVT',  model: 'meta-llama/llama-3.1-70b-instruct', url: 'https://api.novita.ai/v3/openai/chat/completions',                type: 'openai' },
+  ai21:       { name: 'AI21 Labs',    code: 'A21',  model: 'jamba-1.5-large',                url: 'https://api.ai21.com/studio/v1/chat/completions',                    type: 'openai' },
+  huggingface:{ name: 'HuggingFace',  code: 'HGF',  model: 'meta-llama/Meta-Llama-3-70B-Instruct', url: 'https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-70B-Instruct/v1/chat/completions', type: 'openai' },
 };
 
 function detectProvider(rawKey) {
@@ -29,6 +34,9 @@ function detectProvider(rawKey) {
   if (key.startsWith('nvapi-')) return 'nvidia';
   if (key.startsWith('bytez:')) return 'bytez';
   if (key.startsWith('sk-or-v1-')) return 'openrouter';
+  if (key.startsWith('xai-')) return 'xai';
+  if (key.startsWith('fw_')) return 'fireworks';
+  if (key.startsWith('hf_')) return 'huggingface';
   return null;
 }
 
