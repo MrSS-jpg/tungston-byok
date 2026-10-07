@@ -4,9 +4,9 @@ import ReactMarkdown from 'react-markdown';
 /* ───────────────────── Provider registry ───────────────────── */
 
 const PROVIDERS = {
-  nara:       { name: 'Nara Router',  code: 'NRA',  model: 'agnes-2.5-flash',               url: 'https://corsproxy.io/?https://router.bynara.id/v1/chat/completions', type: 'openai' },
+  nara:       { name: 'Nara Router',  code: 'NRA',  model: 'agnes-2.5-flash',               url: '/api/proxy', targetUrl: 'https://router.bynara.id/v1/chat/completions', type: 'openai' },
   openai:     { name: 'GPT-4o',       code: 'OAI',  model: 'gpt-4o',                         url: 'https://api.openai.com/v1/chat/completions',                         type: 'openai' },
-  anthropic:  { name: 'Claude',       code: 'ANT',  model: 'claude-3-5-sonnet-20241022',     url: 'https://corsproxy.io/?https://api.anthropic.com/v1/messages',        type: 'anthropic' },
+  anthropic:  { name: 'Claude',       code: 'ANT',  model: 'claude-3-5-sonnet-20241022',     url: 'https://api.anthropic.com/v1/messages',                              type: 'anthropic' },
   gemini:     { name: 'Gemini',       code: 'GEM',  model: 'gemini-3.7-flash',               url: 'https://generativelanguage.googleapis.com/v1beta/models',            type: 'gemini' },
   groq:       { name: 'Groq',         code: 'GRQ',  model: 'llama-3.3-70b-versatile',        url: 'https://api.groq.com/openai/v1/chat/completions',                    type: 'openai' },
   mistral:    { name: 'Mistral',      code: 'MST',  model: 'mistral-large-latest',           url: 'https://api.mistral.ai/v1/chat/completions',                         type: 'openai' },
@@ -15,9 +15,9 @@ const PROVIDERS = {
   together:   { name: 'Together AI',  code: 'TGR',  model: 'meta-llama/Llama-3-70b-chat-hf', url: 'https://api.together.xyz/v1/chat/completions',                       type: 'openai' },
   perplexity: { name: 'Perplexity',   code: 'PPX',  model: 'sonar-reasoning',                url: 'https://api.perplexity.ai/chat/completions',                         type: 'openai' },
   openrouter: { name: 'OpenRouter',   code: 'ORT',  model: 'openrouter/free',                url: 'https://openrouter.ai/api/v1/chat/completions',                      type: 'openai' },
-  nvidia:     { name: 'NVIDIA NIM',   code: 'NVD',  model: 'meta/llama-3.1-70b-instruct',    url: 'https://corsproxy.io/?https://integrate.api.nvidia.com/v1/chat/completions', type: 'openai' },
-  bytez:      { name: 'Bytez',        code: 'BTZ',  model: 'microsoft/Phi-4-mini-reasoning',  url: 'https://corsproxy.io/?https://api.bytez.com/models/v2/openai/v1/chat/completions', type: 'openai' },
-  cohere:     { name: 'Cohere',       code: 'CHR',  model: 'command-r-plus',                 url: 'https://corsproxy.io/?https://api.cohere.com/v1/chat',               type: 'cohere' },
+  nvidia:     { name: 'NVIDIA NIM',   code: 'NVD',  model: 'meta/llama-3.1-70b-instruct',    url: '/api/proxy', targetUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', type: 'openai' },
+  bytez:      { name: 'Bytez',        code: 'BTZ',  model: 'microsoft/Phi-4-mini-reasoning',  url: '/api/proxy', targetUrl: 'https://api.bytez.com/models/v2/openai/v1/chat/completions', type: 'openai' },
+  cohere:     { name: 'Cohere',       code: 'CHR',  model: 'command-r-plus',                 url: '/api/proxy', targetUrl: 'https://api.cohere.com/v1/chat',               type: 'cohere' },
   xai:        { name: 'xAI',          code: 'XAI',  model: 'grok-beta',                      url: 'https://api.x.ai/v1/chat/completions',                               type: 'openai' },
   fireworks:  { name: 'Fireworks',    code: 'FWK',  model: 'accounts/fireworks/models/llama-v3p1-70b-instruct', url: 'https://api.fireworks.ai/inference/v1/chat/completions', type: 'openai' },
   novita:     { name: 'Novita AI',    code: 'NVT',  model: 'meta-llama/llama-3.1-70b-instruct', url: 'https://api.novita.ai/v3/openai/chat/completions',                type: 'openai' },
@@ -102,9 +102,11 @@ export default function App() {
       const key = apiKey.trim();
 
       if (activeProvider.type === 'openai') {
+        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` };
+        if (activeProvider.targetUrl) headers['x-target-url'] = activeProvider.targetUrl;
         const res = await fetch(activeProvider.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          headers,
           body: JSON.stringify({ model: activeProvider.model, messages: newMessages }),
         });
         if (!res.ok) throw new Error(await res.text());
@@ -122,9 +124,16 @@ export default function App() {
         resultText = data.candidates[0].content.parts[0].text;
 
       } else if (activeProvider.type === 'anthropic') {
+        const headers = {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        };
+        if (activeProvider.targetUrl) headers['x-target-url'] = activeProvider.targetUrl;
         const res = await fetch(activeProvider.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          headers,
           body: JSON.stringify({ model: activeProvider.model, max_tokens: 4096, messages: newMessages.filter(m => m.role !== 'system') }),
         });
         if (!res.ok) throw new Error(await res.text());
@@ -132,9 +141,11 @@ export default function App() {
         resultText = data.content[0].text;
 
       } else if (activeProvider.type === 'cohere') {
+        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` };
+        if (activeProvider.targetUrl) headers['x-target-url'] = activeProvider.targetUrl;
         const res = await fetch(activeProvider.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          headers,
           body: JSON.stringify({ model: activeProvider.model, message: userText, chat_history: messages.map(m => ({ role: m.role === 'user' ? 'USER' : 'CHATBOT', message: m.content })) }),
         });
         if (!res.ok) throw new Error(await res.text());
