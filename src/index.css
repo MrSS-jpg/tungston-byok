@@ -148,3 +148,97 @@ textarea:focus-visible, button:focus-visible, input:focus-visible, select:focus-
 }
 
 .provider-card.active > * { color: var(--filament); }
+
+/* Brutalist Button Utility */
+.brut-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--filament);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 18px;
+  border: var(--border-w) solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease, color 0.1s ease;
+  user-select: none;
+}
+
+.brut-btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.brut-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.brut-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.brut-btn-secondary {
+  background: var(--surface2);
+  color: var(--concrete);
+}
+
+.brut-btn-secondary:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--filament);
+  border-color: var(--filament);
+}
+
+.brut-btn-ghost {
+  background: transparent;
+  color: var(--concrete);
+}
+
+.brut-btn-ghost:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--filament);
+}
+
+/* Brutalist Input */
+.brut-input {
+  background: var(--base);
+  color: var(--concrete);
+  border: var(--border-w) solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.brut-input:focus {
+  border-color: var(--filament);
+  box-shadow: 0 0 10px rgba(255,184,0,0.3);
+}
+
+/* Telemetry Metric Tag */
+.metric-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--ink);
+  background: var(--surface2);
+  color: var(--concrete);
+}
+.metric-badge.highlight {
+  border-color: var(--filament);
+  color: var(--filament);
+  background: rgba(255,184,0,0.08);
+}
+

@@ -3,6 +3,7 @@ export const config = {
 };
 
 const ALLOWED_HOSTS = new Set([
+  'generativelanguage.googleapis.com',
   'router.bynara.id',
   'api.anthropic.com',
   'integrate.api.nvidia.com',
