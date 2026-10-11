@@ -423,8 +423,8 @@ async function queryModel({ providerId, apiKey, model, messages, temperature = 0
 ───────────────────────────────────────────────────────────── */
 
 export default function App() {
-  /* ── Tab Mode ── */
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('tungston_mode') || 'arena');
+  /* ── Tab Mode: DEFAULT IS 'chat' (Single BYOK) ── */
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('tungston_mode') || 'chat');
 
   /* ── Chat Mode State ── */
   const [chatKey, setChatKey] = useState(() => localStorage.getItem('tungston_key') || '');
@@ -453,6 +453,9 @@ export default function App() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [arenaInput, setArenaInput] = useState('');
   const [arenaRunning, setArenaRunning] = useState(false);
+
+  /* Mobile Arena View Switcher ('both' | 'A' | 'B') */
+  const [mobileArenaView, setMobileArenaView] = useState('both');
 
   const [resA, setResA] = useState({ status: 'idle', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
   const [resB, setResB] = useState({ status: 'idle', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
@@ -507,7 +510,7 @@ export default function App() {
       setArenaHistory([]);
       setResA({ status: 'idle', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
       setResB({ status: 'idle', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
-      setStatusNotice('ALL KEYS AND DATA WIPED FROM BROWSER');
+      setStatusNotice('ALL KEYS WIPED FROM BROWSER');
       setTimeout(() => setStatusNotice(''), 3000);
     }
   };
@@ -520,6 +523,19 @@ export default function App() {
     const tempResA = { ...resA };
     setResA({ ...resB });
     setResB(tempResA);
+  };
+
+  /* ── Open Arena pre-seeded with current Chat config ── */
+  const handleLaunchArenaFromChat = () => {
+    if (chatKey.trim()) {
+      setEngineA((prev) => ({
+        ...prev,
+        provider: chatProvider,
+        key: chatKey.trim(),
+        model: chatModel
+      }));
+    }
+    setActiveTab('arena');
   };
 
   /* ── Send in Single Chat Mode ── */
@@ -644,61 +660,63 @@ export default function App() {
   ───────────────────────────────────────────────────────────── */
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--base)] text-[var(--concrete)] relative overflow-hidden font-mono">
+    <div className="flex flex-col h-[100dvh] bg-[var(--base)] text-[var(--concrete)] relative overflow-hidden font-mono">
       <div className="grain" />
 
-      {/* ── TOPBAR ── */}
-      <header className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 py-3 md:px-6 flex items-center justify-between flex-wrap gap-3 shrink-0 z-10">
-        <div className="flex items-center gap-3">
+      {/* ── TOPBAR (RESPONSIVE FOR ALL SCREEN SIZES) ── */}
+      <header className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-2.5 md:px-6 md:py-3 flex items-center justify-between flex-wrap gap-2 shrink-0 z-10">
+        <div className="flex items-center gap-2 md:gap-3">
           <a
             href="https://tungston.vercel.app/"
-            className="flex items-center gap-2 border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2.5 py-1 text-xs hover:border-[var(--filament)] hover:text-[var(--filament)] transition-colors"
+            className="flex items-center gap-1 border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2 py-1 text-[11px] md:text-xs hover:border-[var(--filament)] hover:text-[var(--filament)] transition-colors"
             title="Return to Tungston Forge"
           >
             <span>← FORGE</span>
           </a>
-          <div className="flex items-center gap-1.5 font-display text-lg md:text-xl uppercase tracking-wider text-[var(--concrete)]">
+          <div className="flex items-center gap-1 font-display text-base md:text-xl uppercase tracking-wider text-[var(--concrete)]">
             <span className="text-[var(--filament)]">W 74</span>
-            <span>TUNGSTON</span>
-            <span className="text-xs font-mono font-bold px-1.5 py-0.5 bg-[var(--filament)] text-[var(--ink)] ml-1">BYOK &amp; ARENA</span>
+            <span className="hidden sm:inline">TUNGSTON</span>
+            <span className="text-[10px] md:text-xs font-mono font-bold px-1.5 py-0.5 bg-[var(--filament)] text-[var(--ink)] ml-1">
+              BYOK
+            </span>
           </div>
         </div>
 
-        {/* ── MODE SWITCHER ── */}
-        <div className="flex items-center border-[3px] border-[var(--ink)] bg-[var(--base)] shadow-[3px_3px_0_var(--ink)]">
-          <button
-            onClick={() => setActiveTab('arena')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${
-              activeTab === 'arena'
-                ? 'bg-[var(--filament)] text-[var(--ink)]'
-                : 'text-[var(--concrete)] hover:text-[var(--filament)]'
-            }`}
-          >
-            ⚔️ MODEL ARENA
-          </button>
-          <div className="w-[2px] h-6 bg-[var(--ink)]" />
+        {/* ── MODE SWITCHER TABS ── */}
+        <div className="flex items-center border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--base)] shadow-[2px_2px_0_var(--ink)] md:shadow-[3px_3px_0_var(--ink)]">
           <button
             onClick={() => setActiveTab('chat')}
-            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-2.5 py-1 md:px-3 md:py-1.5 text-[11px] md:text-xs font-bold uppercase tracking-wider transition-all ${
               activeTab === 'chat'
                 ? 'bg-[var(--filament)] text-[var(--ink)]'
                 : 'text-[var(--concrete)] hover:text-[var(--filament)]'
             }`}
           >
-            💬 SINGLE ENGINE
+            💬 SINGLE BYOK
+          </button>
+          <div className="w-[2px] h-5 md:h-6 bg-[var(--ink)]" />
+          <button
+            onClick={() => setActiveTab('arena')}
+            className={`px-2.5 py-1 md:px-3 md:py-1.5 text-[11px] md:text-xs font-bold uppercase tracking-wider transition-all ${
+              activeTab === 'arena'
+                ? 'bg-[var(--filament)] text-[var(--ink)]'
+                : 'text-[var(--concrete)] hover:text-[var(--filament)]'
+            }`}
+          >
+            ⚔️ ARENA (TESTER)
           </button>
         </div>
 
-        {/* ── ACTIONS ── */}
-        <div className="flex items-center gap-2">
+        {/* ── TOPBAR RIGHT ACTIONS ── */}
+        <div className="flex items-center gap-1.5 md:gap-2">
           {statusNotice && (
-            <span className="text-[10px] font-bold text-[var(--filament)] px-2 py-1 border border-[var(--filament)] bg-black animate-pulse">
+            <span className="text-[9px] md:text-[10px] font-bold text-[var(--filament)] px-1.5 py-0.5 border border-[var(--filament)] bg-black animate-pulse">
               {statusNotice}
             </span>
           )}
           <button
             onClick={handleClearAllStorage}
-            className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] hover:border-red-500 hover:text-red-400 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+            className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] hover:border-red-500 hover:text-red-400 px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-colors"
             title="Clear all stored keys and browser history"
           >
             WIPE KEYS
@@ -707,21 +725,304 @@ export default function App() {
       </header>
 
       {/* ─────────────────────────────────────────────────────────────
-         TAB 1: MODEL ARENA (REPLACES TESTER)
+         TAB 1: SINGLE ENGINE WORKBENCH (DEFAULT)
+      ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'chat' && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Key & Provider selector bar */}
+          <div className="border-b-[3px] border-[var(--ink)] px-3 py-2.5 md:px-6 md:py-3 bg-[var(--surface)] flex items-center gap-2 md:gap-3 flex-wrap shrink-0">
+            <span className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase shrink-0">
+              API KEY
+            </span>
+            <input
+              type="password"
+              placeholder="Paste any supported API key..."
+              value={chatKey}
+              onChange={(e) => {
+                const val = e.target.value;
+                setChatKey(val);
+                const detected = detectProvider(val);
+                if (detected) {
+                  setChatProvider(detected);
+                  setChatModel(PROVIDERS[detected]?.defaultModel || chatModel);
+                }
+              }}
+              className="flex-1 min-w-[140px] md:min-w-[200px] brut-input text-base md:text-xs py-1.5"
+            />
+
+            <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+              <select
+                value={chatProvider}
+                onChange={(e) => {
+                  const p = e.target.value;
+                  setChatProvider(p);
+                  setChatModel(PROVIDERS[p]?.defaultModel || '');
+                }}
+                className="brut-input text-xs py-1.5 max-w-[120px] md:max-w-none"
+              >
+                {Object.entries(PROVIDERS).map(([pid, p]) => (
+                  <option key={pid} value={pid}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={chatModel}
+                onChange={(e) => setChatModel(e.target.value)}
+                className="brut-input text-xs py-1.5 max-w-[140px] md:max-w-none"
+              >
+                {PROVIDERS[chatProvider]?.models.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => setShowChatProviders(!showChatProviders)}
+                className="brut-btn text-[10px] md:text-[11px] py-1.5 px-2 md:px-3"
+                title="View all 12 providers"
+              >
+                {showChatProviders ? '▲' : '▼ ALL'}
+              </button>
+
+              {/* DIRECT BUTTON TO OPEN THE ARENA / TESTER */}
+              <button
+                onClick={handleLaunchArenaFromChat}
+                className="border-[2px] border-[var(--filament)] bg-[var(--surface2)] text-[var(--filament)] px-2 md:px-2.5 py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-[var(--filament)] hover:text-[var(--ink)] transition-colors"
+                title="Open Dual-Model Comparison Arena with current engine"
+              >
+                ⚔️ OPEN ARENA
+              </button>
+            </div>
+          </div>
+
+          {/* Provider drawer */}
+          {showChatProviders && (
+            <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-3 py-3 md:px-6 md:py-4 shrink-0 max-h-[45vh] overflow-y-auto">
+              <p className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase mb-2">
+                SELECT ENGINE — {Object.keys(PROVIDERS).length} CONNECTORS AVAILABLE
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {Object.entries(PROVIDERS).map(([key, p]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setChatProvider(key);
+                      setChatModel(p.defaultModel);
+                      setShowChatProviders(false);
+                    }}
+                    className={`provider-card text-left p-2.5 md:p-3 ${chatProvider === key ? 'active' : ''}`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--tungsten-gray)]">{p.code}</span>
+                      {chatProvider === key && (
+                        <span className="inline-block w-2 h-2 bg-[var(--filament)] border border-[var(--ink)]" />
+                      )}
+                    </div>
+                    <span className="text-xs font-bold uppercase leading-tight block">{p.name}</span>
+                    <span className="text-[9px] text-[var(--tungsten-gray)] block mt-1 truncate">{p.defaultModel}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chat Messages */}
+          <main className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4">
+            {chatMessages.length === 0 && (
+              <div className="h-full flex items-center justify-center py-4 md:py-6">
+                <div className="w-full max-w-2xl text-center px-2">
+                  <h1
+                    className="relative w-fit mx-auto"
+                    style={{
+                      fontFamily: 'Archivo Black, sans-serif',
+                      fontSize: 'clamp(2.2rem, 8vw, 5.5rem)',
+                      lineHeight: 0.9,
+                      letterSpacing: '-0.02em',
+                      margin: '0 auto 16px'
+                    }}
+                  >
+                    BYOK
+                    <span
+                      className="absolute inset-0 text-transparent animate-flicker pointer-events-none"
+                      style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(4px, 4px)', zIndex: -1 }}
+                      aria-hidden="true"
+                    >
+                      BYOK
+                    </span>
+                  </h1>
+
+                  <p className="mx-auto text-xs md:text-base font-medium max-w-md mb-2">
+                    Bring your own key. Run it straight through — no middleman, no markup.
+                  </p>
+                  <p className="mx-auto text-[11px] md:text-xs text-[var(--tungsten-gray)] uppercase tracking-wider mb-5">
+                    {Object.keys(PROVIDERS).length} providers ready. Credentials stay in browser.
+                  </p>
+
+                  {/* PROMINENT OPTION TO OPEN TESTING FIELD / COMPARISON ARENA */}
+                  <div className="border-[3px] border-[var(--filament)] bg-[var(--surface)] p-3 md:p-4 max-w-md mx-auto text-left shadow-[4px_4px_0_var(--ink)] mb-5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--filament)]">
+                        ⚔️ MODEL COMPARISON ARENA
+                      </span>
+                      <span className="text-[9px] bg-[var(--filament)] text-[var(--ink)] px-1.5 py-0.5 font-bold uppercase">
+                        DUAL BENCHMARK
+                      </span>
+                    </div>
+                    <p className="text-[11px] md:text-xs text-[var(--concrete)] mb-3 leading-relaxed">
+                      Compare two different models or API keys side-by-side with latency, speed (tokens/sec), and throughput telemetry.
+                    </p>
+                    <button
+                      onClick={handleLaunchArenaFromChat}
+                      className="brut-btn w-full text-xs py-2 shadow-[2px_2px_0_var(--ink)]"
+                    >
+                      OPEN DUAL TESTING ARENA ⚔️
+                    </button>
+                  </div>
+
+                  {/* SPECIFICATION CARD */}
+                  <div className="border-[3px] border-[var(--ink)] max-w-sm mx-auto text-left bg-[var(--surface)]">
+                    {[
+                      ['EXECUTION', 'CLIENT-SIDE PROXY'],
+                      ['CREDENTIALS', 'LOCALSTORAGE ONLY'],
+                      ['ACTIVE PROVIDER', PROVIDERS[chatProvider]?.name || 'N/A'],
+                      ['ACTIVE MODEL', chatModel || 'N/A']
+                    ].map(([label, value], i, arr) => (
+                      <div
+                        key={label}
+                        className={`flex justify-between px-3 md:px-4 py-2 text-xs tracking-[0.04em] ${
+                          i < arr.length - 1 ? 'border-b border-[var(--tungsten-gray)]' : ''
+                        }`}
+                      >
+                        <span className="text-[var(--tungsten-gray)] font-semibold">{label}</span>
+                        <span>{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {chatMessages.map((m, i) => (
+              <div key={i} className={`flex gap-2.5 md:gap-3 ${m.role === 'user' ? 'justify-end' : ''}`}>
+                {m.role !== 'user' && (
+                  <div
+                    className="shrink-0 mt-0.5 w-7 h-7 md:w-8 md:h-8 border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs shadow-[2px_2px_0_var(--ink)]"
+                  >
+                    {PROVIDERS[chatProvider]?.code?.charAt(0) || 'W'}
+                  </div>
+                )}
+                <div
+                  className={`max-w-[90%] md:max-w-[80%] border-[2px] md:border-[3px] border-[var(--ink)] px-3 py-2.5 md:px-4 md:py-3 shadow-[2px_2px_0_var(--ink)] md:shadow-[3px_3px_0_var(--ink)] ${
+                    m.role === 'user'
+                      ? 'bg-[var(--filament)] text-[var(--ink)] font-medium'
+                      : 'bg-[var(--surface)] text-[var(--concrete)]'
+                  }`}
+                >
+                  {m.role === 'user' ? (
+                    <div className="whitespace-pre-wrap break-words text-xs md:text-sm">{m.content}</div>
+                  ) : (
+                    <div>
+                      <div className="markdown text-xs md:text-sm leading-relaxed break-words">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      </div>
+                      {m.latencyMs && (
+                        <div className="mt-2 pt-2 border-t border-[var(--ink)] flex items-center gap-1.5 md:gap-2 text-[9px] md:text-[10px] text-[var(--tungsten-gray)] flex-wrap">
+                          <span>⏱ {m.latencyMs}ms</span>
+                          <span>•</span>
+                          <span>~{m.tokens} tokens</span>
+                          <span>•</span>
+                          <span className="text-[var(--filament)]">{m.tokensPerSec} t/s</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {chatLoading && (
+              <div className="flex gap-2.5 md:gap-3">
+                <div className="shrink-0 w-7 h-7 md:w-8 md:h-8 border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs animate-spin">
+                  W
+                </div>
+                <div className="border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-2.5 flex items-center gap-1.5 shadow-[2px_2px_0_var(--ink)]">
+                  <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} className="h-4 md:h-6" />
+          </main>
+
+          {/* Composer */}
+          <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] p-2.5 md:p-4 shrink-0 pb-[max(10px,env(safe-area-inset-bottom))]">
+            <div className="flex items-end gap-2 md:gap-3">
+              <div className="flex-1 border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--base)] p-2 shadow-[2px_2px_0_var(--ink)] md:shadow-[3px_3px_0_var(--ink)]">
+                <textarea
+                  rows={2}
+                  placeholder={`Talk to ${PROVIDERS[chatProvider]?.name} (${chatModel})...`}
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleChatSend();
+                    }
+                  }}
+                  className="w-full bg-transparent text-base md:text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] resize-none focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={handleChatSend}
+                disabled={chatLoading || !chatInput.trim() || !chatKey.trim()}
+                className="brut-btn text-xs py-3 px-3 md:px-4 shrink-0 min-h-[44px]"
+              >
+                SEND ↗
+              </button>
+            </div>
+            <div className="flex justify-between items-center mt-2 text-[9px] md:text-[10px] text-[var(--tungsten-gray)] flex-wrap gap-1">
+              <span>{PROVIDERS[chatProvider]?.name} • {chatModel}</span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleLaunchArenaFromChat}
+                  className="text-[var(--filament)] hover:underline uppercase font-bold"
+                >
+                  ⚔️ COMPARE IN ARENA ↗
+                </button>
+                {chatMessages.length > 0 && (
+                  <button
+                    onClick={() => setChatMessages([])}
+                    className="hover:text-red-400 uppercase font-bold"
+                  >
+                    CLEAR CHAT
+                  </button>
+                )}
+              </div>
+            </div>
+          </footer>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+         TAB 2: MODEL ARENA / TESTER
       ───────────────────────────────────────────────────────────── */}
       {activeTab === 'arena' && (
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* ── ARENA DUAL CONFIG BAR ── */}
-          <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 py-3 md:px-6 shrink-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+          <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-2.5 md:px-6 md:py-3 shrink-0 max-h-[38vh] md:max-h-none overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative">
               {/* ── ENGINE A CONFIG ── */}
-              <div className="border-[2px] border-[var(--ink)] bg-[var(--base)] p-3 shadow-[2px_2px_0_var(--ink)] flex flex-col gap-2">
+              <div className="border-[2px] border-[var(--ink)] bg-[var(--base)] p-2.5 md:p-3 shadow-[2px_2px_0_var(--ink)] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 bg-[var(--filament)] border border-[var(--ink)] inline-block" />
                     <span className="text-xs font-bold uppercase tracking-wider text-[var(--filament)]">ENGINE A [PRIMARY]</span>
                   </div>
-                  <span className="text-[10px] text-[var(--tungsten-gray)]">{PROVIDERS[engineA.provider]?.tag}</span>
+                  <span className="text-[9px] md:text-[10px] text-[var(--tungsten-gray)]">{PROVIDERS[engineA.provider]?.tag}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -791,12 +1092,23 @@ export default function App() {
                         setEngineA({ ...engineA, key: val });
                       }
                     }}
-                    className="w-full brut-input text-xs placeholder:text-[var(--tungsten-gray)]"
+                    className="w-full brut-input text-base md:text-xs placeholder:text-[var(--tungsten-gray)]"
                   />
                 </div>
               </div>
 
-              {/* ── SWAP BUTTON (DESKTOP CENTER) ── */}
+              {/* ── MOBILE SWAP BUTTON ── */}
+              <div className="flex md:hidden justify-center my-0.5">
+                <button
+                  onClick={handleSwapEngines}
+                  className="border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-3 py-1 font-bold text-[11px] shadow-[2px_2px_0_var(--ink)]"
+                  title="Swap Engine A and Engine B"
+                >
+                  ⇄ SWAP ENGINES A &amp; B
+                </button>
+              </div>
+
+              {/* ── DESKTOP SWAP BUTTON ── */}
               <button
                 onClick={handleSwapEngines}
                 className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] w-8 h-8 items-center justify-center font-bold text-sm shadow-[2px_2px_0_var(--ink)] hover:scale-110 active:scale-95 transition-transform"
@@ -806,7 +1118,7 @@ export default function App() {
               </button>
 
               {/* ── ENGINE B CONFIG ── */}
-              <div className="border-[2px] border-[var(--ink)] bg-[var(--base)] p-3 shadow-[2px_2px_0_var(--ink)] flex flex-col gap-2">
+              <div className="border-[2px] border-[var(--ink)] bg-[var(--base)] p-2.5 md:p-3 shadow-[2px_2px_0_var(--ink)] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 bg-blue-400 border border-[var(--ink)] inline-block" />
@@ -878,7 +1190,7 @@ export default function App() {
                       type="text"
                       disabled
                       value={engineA.key ? `Using Key from Engine A (${engineA.key.slice(0, 4)}••••)` : 'Waiting for Engine A Key...'}
-                      className="w-full brut-input text-xs bg-[var(--surface2)] text-[var(--tungsten-gray)] cursor-not-allowed opacity-80"
+                      className="w-full brut-input text-base md:text-xs bg-[var(--surface2)] text-[var(--tungsten-gray)] cursor-not-allowed opacity-80"
                     />
                   ) : (
                     <input
@@ -898,7 +1210,7 @@ export default function App() {
                           setEngineB({ ...engineB, key: val });
                         }
                       }}
-                      className="w-full brut-input text-xs placeholder:text-[var(--tungsten-gray)]"
+                      className="w-full brut-input text-base md:text-xs placeholder:text-[var(--tungsten-gray)]"
                     />
                   )}
                 </div>
@@ -906,39 +1218,39 @@ export default function App() {
             </div>
           </div>
 
-          {/* ── ARENA WORKSPACE (SPLIT 50/50) ── */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-5 flex flex-col gap-4">
+          {/* ── ARENA WORKSPACE (SPLIT 50/50 WITH MOBILE TABS) ── */}
+          <div className="flex-1 overflow-y-auto p-2.5 md:p-5 flex flex-col gap-3 md:gap-4">
             {/* ── SHARED COMPOSER & PRESETS ── */}
-            <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] p-3 md:p-4 shadow-[4px_4px_0_var(--ink)]">
+            <div className="border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--surface)] p-2.5 md:p-4 shadow-[3px_3px_0_var(--ink)] md:shadow-[4px_4px_0_var(--ink)]">
               {/* Presets row */}
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="text-[10px] font-bold text-[var(--tungsten-gray)] uppercase tracking-wider">PRESET BENCHMARKS:</span>
+              <div className="flex items-center gap-1.5 md:gap-2 mb-2 flex-wrap">
+                <span className="text-[9px] md:text-[10px] font-bold text-[var(--tungsten-gray)] uppercase tracking-wider">PRESET:</span>
                 {PRESET_PROMPTS.map((p, idx) => (
                   <button
                     key={idx}
                     onClick={() => setArenaInput(p.prompt)}
-                    className="text-[11px] font-bold border border-[var(--ink)] bg-[var(--base)] px-2 py-0.5 hover:border-[var(--filament)] hover:text-[var(--filament)] transition-colors"
+                    className="text-[10px] md:text-[11px] font-bold border border-[var(--ink)] bg-[var(--base)] px-1.5 md:px-2 py-0.5 hover:border-[var(--filament)] hover:text-[var(--filament)] transition-colors"
                   >
                     {p.label}
                   </button>
                 ))}
                 <button
                   onClick={() => setShowSystemPrompt(!showSystemPrompt)}
-                  className="ml-auto text-[10px] font-bold text-[var(--tungsten-gray)] hover:text-[var(--concrete)] transition-colors uppercase"
+                  className="ml-auto text-[9px] md:text-[10px] font-bold text-[var(--tungsten-gray)] hover:text-[var(--concrete)] transition-colors uppercase"
                 >
-                  {showSystemPrompt ? '▲ HIDE SYSTEM PROMPT' : '▼ ADD SYSTEM PROMPT'}
+                  {showSystemPrompt ? '▲ HIDE SYSTEM PROMPT' : '▼ SYSTEM PROMPT'}
                 </button>
               </div>
 
               {/* Optional System Prompt */}
               {showSystemPrompt && (
-                <div className="mb-3">
+                <div className="mb-2.5">
                   <textarea
                     rows={2}
                     value={systemPrompt}
                     onChange={(e) => setSystemPrompt(e.target.value)}
                     placeholder="System instruction sent equally to both engines (e.g. 'You are an adversarial security auditor...')."
-                    className="w-full brut-input text-xs resize-none placeholder:text-[var(--tungsten-gray)]"
+                    className="w-full brut-input text-base md:text-xs resize-none placeholder:text-[var(--tungsten-gray)]"
                   />
                 </div>
               )}
@@ -956,7 +1268,7 @@ export default function App() {
                     }
                   }}
                   placeholder="Enter benchmark prompt to execute against Engine A and Engine B simultaneously... (Ctrl+Enter to fire)"
-                  className="flex-1 brut-input text-sm resize-none placeholder:text-[var(--tungsten-gray)] leading-relaxed"
+                  className="flex-1 brut-input text-base md:text-sm resize-none placeholder:text-[var(--tungsten-gray)] leading-relaxed"
                 />
 
                 <div className="flex md:flex-col justify-between gap-2 shrink-0">
@@ -980,7 +1292,7 @@ export default function App() {
                     <button
                       onClick={() => setArenaInput('')}
                       disabled={arenaRunning}
-                      className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-3 py-1.5 text-[10px] font-bold uppercase hover:text-red-400"
+                      className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2.5 py-1 text-[10px] font-bold uppercase hover:text-red-400"
                     >
                       CLEAR
                     </button>
@@ -988,28 +1300,63 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center mt-2 text-[10px] text-[var(--tungsten-gray)]">
-                <span>ESTIMATED PROMPT TOKENS: ~{estimateTokens(arenaInput)}</span>
-                <span>SHORTCUT: CTRL+ENTER</span>
+              <div className="flex justify-between items-center mt-2 text-[9px] md:text-[10px] text-[var(--tungsten-gray)]">
+                <span>EST. PROMPT TOKENS: ~{estimateTokens(arenaInput)}</span>
+                <span className="hidden sm:inline">SHORTCUT: CTRL+ENTER</span>
+              </div>
+            </div>
+
+            {/* ── MOBILE RESULTS VIEW SELECTOR (< 768px) ── */}
+            <div className="flex md:hidden items-center justify-between border-[2px] border-[var(--ink)] bg-[var(--surface2)] p-1">
+              <span className="text-[10px] font-bold text-[var(--tungsten-gray)] px-1">VIEW:</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setMobileArenaView('both')}
+                  className={`px-2 py-0.5 text-[10px] font-bold uppercase border border-[var(--ink)] ${
+                    mobileArenaView === 'both' ? 'bg-[var(--filament)] text-[var(--ink)]' : 'bg-[var(--base)] text-[var(--concrete)]'
+                  }`}
+                >
+                  STACKED
+                </button>
+                <button
+                  onClick={() => setMobileArenaView('A')}
+                  className={`px-2 py-0.5 text-[10px] font-bold uppercase border border-[var(--ink)] ${
+                    mobileArenaView === 'A' ? 'bg-[var(--filament)] text-[var(--ink)]' : 'bg-[var(--base)] text-[var(--concrete)]'
+                  }`}
+                >
+                  ENGINE A
+                </button>
+                <button
+                  onClick={() => setMobileArenaView('B')}
+                  className={`px-2 py-0.5 text-[10px] font-bold uppercase border border-[var(--ink)] ${
+                    mobileArenaView === 'B' ? 'bg-blue-400 text-[var(--ink)]' : 'bg-[var(--base)] text-[var(--concrete)]'
+                  }`}
+                >
+                  ENGINE B
+                </button>
               </div>
             </div>
 
             {/* ── SIDE-BY-SIDE ARENA DISPLAY ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-[360px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 flex-1 min-h-[340px]">
               {/* ── ENGINE A RESULTS PANE ── */}
-              <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] flex flex-col shadow-[4px_4px_0_var(--ink)] min-h-[300px]">
+              <div
+                className={`border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--surface)] flex-col shadow-[3px_3px_0_var(--ink)] md:shadow-[4px_4px_0_var(--ink)] min-h-[260px] ${
+                  mobileArenaView === 'B' ? 'hidden md:flex' : 'flex'
+                }`}
+              >
                 {/* Pane header */}
-                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--base)] px-3 py-2 flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--base)] px-2.5 py-1.5 md:px-3 md:py-2 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="font-bold text-xs text-[var(--filament)]">ENGINE A</span>
-                    <span className="text-[11px] text-[var(--concrete)] font-bold">
+                    <span className="text-[10px] md:text-[11px] text-[var(--concrete)] font-bold truncate max-w-[200px]">
                       {PROVIDERS[engineA.provider]?.name} / {engineA.model}
                     </span>
                   </div>
                   {resA.status === 'done' && (
                     <button
                       onClick={() => handleCopy(resA.text, 'resA')}
-                      className="text-[10px] border border-[var(--ink)] bg-[var(--surface2)] px-2 py-0.5 hover:text-[var(--filament)] uppercase font-bold"
+                      className="text-[9px] md:text-[10px] border border-[var(--ink)] bg-[var(--surface2)] px-2 py-0.5 hover:text-[var(--filament)] uppercase font-bold"
                     >
                       {copiedKey === 'resA' ? 'COPIED ✓' : 'COPY'}
                     </button>
@@ -1017,15 +1364,15 @@ export default function App() {
                 </div>
 
                 {/* Telemetry bar */}
-                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--surface2)] px-3 py-1.5 flex items-center gap-2 flex-wrap text-[10px]">
+                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2.5 py-1 md:px-3 md:py-1.5 flex items-center gap-1.5 md:gap-2 flex-wrap text-[9px] md:text-[10px]">
                   <span className={`metric-badge ${resA.status === 'done' ? 'highlight' : ''}`}>
-                    STATUS: {resA.status.toUpperCase()}
+                    {resA.status.toUpperCase()}
                   </span>
                   {resA.status === 'done' && (
                     <>
-                      <span className="metric-badge">LATENCY: {resA.latencyMs}ms</span>
-                      <span className="metric-badge">TOKENS: ~{resA.tokens}</span>
-                      <span className="metric-badge highlight">SPEED: {resA.tokensPerSec} T/S</span>
+                      <span className="metric-badge">{resA.latencyMs}ms</span>
+                      <span className="metric-badge">~{resA.tokens} TOK</span>
+                      <span className="metric-badge highlight">{resA.tokensPerSec} T/S</span>
                     </>
                   )}
                   {resA.status === 'running' && (
@@ -1034,20 +1381,20 @@ export default function App() {
                 </div>
 
                 {/* Response Body */}
-                <div className="flex-1 p-4 overflow-y-auto">
+                <div className="flex-1 p-3 md:p-4 overflow-y-auto">
                   {resA.status === 'idle' && (
-                    <div className="h-full flex items-center justify-center text-[var(--tungsten-gray)] text-xs text-center p-6">
+                    <div className="h-full flex items-center justify-center text-[var(--tungsten-gray)] text-xs text-center p-4">
                       Awaiting dual execution run...
                     </div>
                   )}
                   {resA.status === 'running' && (
-                    <div className="h-full flex flex-col items-center justify-center gap-3 text-xs text-[var(--tungsten-gray)] py-12">
-                      <div className="w-8 h-8 border-[3px] border-[var(--filament)] border-t-transparent animate-spin" />
-                      <span className="uppercase font-bold tracking-wider text-[var(--filament)]">AWAITING ENGINE A COMPLETION</span>
+                    <div className="h-full flex flex-col items-center justify-center gap-2 text-xs text-[var(--tungsten-gray)] py-8">
+                      <div className="w-7 h-7 border-[3px] border-[var(--filament)] border-t-transparent animate-spin" />
+                      <span className="uppercase font-bold tracking-wider text-[var(--filament)]">AWAITING ENGINE A</span>
                     </div>
                   )}
                   {resA.status === 'error' && (
-                    <div className="border-[2px] border-red-500 bg-red-950/20 text-red-400 p-3 text-xs leading-relaxed">
+                    <div className="border-[2px] border-red-500 bg-red-950/20 text-red-400 p-2.5 text-xs leading-relaxed">
                       <p className="font-bold mb-1">ENGINE A ERROR:</p>
                       <code>{resA.error}</code>
                     </div>
@@ -1061,35 +1408,39 @@ export default function App() {
 
                 {/* Verdict Button */}
                 {resA.status === 'done' && (
-                  <div className="border-t-[2px] border-[var(--ink)] bg-[var(--base)] p-2">
+                  <div className="border-t-[2px] border-[var(--ink)] bg-[var(--base)] p-1.5 md:p-2">
                     <button
                       onClick={() => setArenaVerdict('A')}
-                      className={`w-full py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] transition-colors ${
+                      className={`w-full py-1.5 text-[11px] md:text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] transition-colors ${
                         arenaVerdict === 'A'
                           ? 'bg-[var(--filament)] text-[var(--ink)]'
                           : 'bg-[var(--surface2)] text-[var(--concrete)] hover:border-[var(--filament)] hover:text-[var(--filament)]'
                       }`}
                     >
-                      {arenaVerdict === 'A' ? '🏆 ENGINE A MARKED AS WINNER' : 'VOTE ENGINE A WINS'}
+                      {arenaVerdict === 'A' ? '🏆 ENGINE A WINS' : 'VOTE ENGINE A WINS'}
                     </button>
                   </div>
                 )}
               </div>
 
               {/* ── ENGINE B RESULTS PANE ── */}
-              <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] flex flex-col shadow-[4px_4px_0_var(--ink)] min-h-[300px]">
+              <div
+                className={`border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--surface)] flex-col shadow-[3px_3px_0_var(--ink)] md:shadow-[4px_4px_0_var(--ink)] min-h-[260px] ${
+                  mobileArenaView === 'A' ? 'hidden md:flex' : 'flex'
+                }`}
+              >
                 {/* Pane header */}
-                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--base)] px-3 py-2 flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--base)] px-2.5 py-1.5 md:px-3 md:py-2 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="font-bold text-xs text-blue-400">ENGINE B</span>
-                    <span className="text-[11px] text-[var(--concrete)] font-bold">
+                    <span className="text-[10px] md:text-[11px] text-[var(--concrete)] font-bold truncate max-w-[200px]">
                       {PROVIDERS[engineB.provider]?.name} / {engineB.model}
                     </span>
                   </div>
                   {resB.status === 'done' && (
                     <button
                       onClick={() => handleCopy(resB.text, 'resB')}
-                      className="text-[10px] border border-[var(--ink)] bg-[var(--surface2)] px-2 py-0.5 hover:text-blue-400 uppercase font-bold"
+                      className="text-[9px] md:text-[10px] border border-[var(--ink)] bg-[var(--surface2)] px-2 py-0.5 hover:text-blue-400 uppercase font-bold"
                     >
                       {copiedKey === 'resB' ? 'COPIED ✓' : 'COPY'}
                     </button>
@@ -1097,15 +1448,15 @@ export default function App() {
                 </div>
 
                 {/* Telemetry bar */}
-                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--surface2)] px-3 py-1.5 flex items-center gap-2 flex-wrap text-[10px]">
+                <div className="border-b-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2.5 py-1 md:px-3 md:py-1.5 flex items-center gap-1.5 md:gap-2 flex-wrap text-[9px] md:text-[10px]">
                   <span className={`metric-badge ${resB.status === 'done' ? 'highlight' : ''}`}>
-                    STATUS: {resB.status.toUpperCase()}
+                    {resB.status.toUpperCase()}
                   </span>
                   {resB.status === 'done' && (
                     <>
-                      <span className="metric-badge">LATENCY: {resB.latencyMs}ms</span>
-                      <span className="metric-badge">TOKENS: ~{resB.tokens}</span>
-                      <span className="metric-badge highlight">SPEED: {resB.tokensPerSec} T/S</span>
+                      <span className="metric-badge">{resB.latencyMs}ms</span>
+                      <span className="metric-badge">~{resB.tokens} TOK</span>
+                      <span className="metric-badge highlight">{resB.tokensPerSec} T/S</span>
                     </>
                   )}
                   {resB.status === 'running' && (
@@ -1114,20 +1465,20 @@ export default function App() {
                 </div>
 
                 {/* Response Body */}
-                <div className="flex-1 p-4 overflow-y-auto">
+                <div className="flex-1 p-3 md:p-4 overflow-y-auto">
                   {resB.status === 'idle' && (
-                    <div className="h-full flex items-center justify-center text-[var(--tungsten-gray)] text-xs text-center p-6">
+                    <div className="h-full flex items-center justify-center text-[var(--tungsten-gray)] text-xs text-center p-4">
                       Awaiting dual execution run...
                     </div>
                   )}
                   {resB.status === 'running' && (
-                    <div className="h-full flex flex-col items-center justify-center gap-3 text-xs text-[var(--tungsten-gray)] py-12">
-                      <div className="w-8 h-8 border-[3px] border-blue-400 border-t-transparent animate-spin" />
-                      <span className="uppercase font-bold tracking-wider text-blue-400">AWAITING ENGINE B COMPLETION</span>
+                    <div className="h-full flex flex-col items-center justify-center gap-2 text-xs text-[var(--tungsten-gray)] py-8">
+                      <div className="w-7 h-7 border-[3px] border-blue-400 border-t-transparent animate-spin" />
+                      <span className="uppercase font-bold tracking-wider text-blue-400">AWAITING ENGINE B</span>
                     </div>
                   )}
                   {resB.status === 'error' && (
-                    <div className="border-[2px] border-red-500 bg-red-950/20 text-red-400 p-3 text-xs leading-relaxed">
+                    <div className="border-[2px] border-red-500 bg-red-950/20 text-red-400 p-2.5 text-xs leading-relaxed">
                       <p className="font-bold mb-1">ENGINE B ERROR:</p>
                       <code>{resB.error}</code>
                     </div>
@@ -1141,16 +1492,16 @@ export default function App() {
 
                 {/* Verdict Button */}
                 {resB.status === 'done' && (
-                  <div className="border-t-[2px] border-[var(--ink)] bg-[var(--base)] p-2">
+                  <div className="border-t-[2px] border-[var(--ink)] bg-[var(--base)] p-1.5 md:p-2">
                     <button
                       onClick={() => setArenaVerdict('B')}
-                      className={`w-full py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] transition-colors ${
+                      className={`w-full py-1.5 text-[11px] md:text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] transition-colors ${
                         arenaVerdict === 'B'
                           ? 'bg-blue-400 text-[var(--ink)]'
                           : 'bg-[var(--surface2)] text-[var(--concrete)] hover:border-blue-400 hover:text-blue-400'
                       }`}
                     >
-                      {arenaVerdict === 'B' ? '🏆 ENGINE B MARKED AS WINNER' : 'VOTE ENGINE B WINS'}
+                      {arenaVerdict === 'B' ? '🏆 ENGINE B WINS' : 'VOTE ENGINE B WINS'}
                     </button>
                   </div>
                 )}
@@ -1162,7 +1513,7 @@ export default function App() {
               <div className="flex justify-center pb-2">
                 <button
                   onClick={() => setArenaVerdict('TIE')}
-                  className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] ${
+                  className={`px-3 py-1 md:px-4 md:py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] ${
                     arenaVerdict === 'TIE'
                       ? 'bg-[var(--concrete)] text-[var(--ink)]'
                       : 'bg-[var(--surface)] text-[var(--tungsten-gray)] hover:text-[var(--concrete)]'
@@ -1173,250 +1524,6 @@ export default function App() {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* ─────────────────────────────────────────────────────────────
-         TAB 2: SINGLE ENGINE WORKBENCH
-      ───────────────────────────────────────────────────────────── */}
-      {activeTab === 'chat' && (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Key & Provider selector bar */}
-          <div className="border-b-[3px] border-[var(--ink)] px-4 py-3 md:px-6 bg-[var(--surface)] flex items-center gap-3 flex-wrap shrink-0">
-            <span className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase shrink-0">
-              API KEY
-            </span>
-            <input
-              type="password"
-              placeholder="Paste any supported API key..."
-              value={chatKey}
-              onChange={(e) => {
-                const val = e.target.value;
-                setChatKey(val);
-                const detected = detectProvider(val);
-                if (detected) {
-                  setChatProvider(detected);
-                  setChatModel(PROVIDERS[detected]?.defaultModel || chatModel);
-                }
-              }}
-              className="flex-1 min-w-[200px] brut-input text-xs"
-            />
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-[var(--tungsten-gray)] uppercase">ENGINE:</span>
-              <select
-                value={chatProvider}
-                onChange={(e) => {
-                  const p = e.target.value;
-                  setChatProvider(p);
-                  setChatModel(PROVIDERS[p]?.defaultModel || '');
-                }}
-                className="brut-input text-xs py-1.5"
-              >
-                {Object.entries(PROVIDERS).map(([pid, p]) => (
-                  <option key={pid} value={pid}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={chatModel}
-                onChange={(e) => setChatModel(e.target.value)}
-                className="brut-input text-xs py-1.5"
-              >
-                {PROVIDERS[chatProvider]?.models.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={() => setShowChatProviders(!showChatProviders)}
-                className="brut-btn text-[11px] py-1.5 px-3"
-              >
-                {showChatProviders ? '▲' : '▼ PROVIDERS'}
-              </button>
-            </div>
-          </div>
-
-          {/* Provider drawer */}
-          {showChatProviders && (
-            <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-4 py-4 md:px-6 shrink-0 max-h-[50vh] overflow-y-auto">
-              <p className="text-[10px] font-bold text-[var(--tungsten-gray)] tracking-[0.1em] uppercase mb-3">
-                SELECT ENGINE — {Object.keys(PROVIDERS).length} CONNECTORS AVAILABLE
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                {Object.entries(PROVIDERS).map(([key, p]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setChatProvider(key);
-                      setChatModel(p.defaultModel);
-                      setShowChatProviders(false);
-                    }}
-                    className={`provider-card text-left ${chatProvider === key ? 'active' : ''}`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--tungsten-gray)]">{p.code}</span>
-                      {chatProvider === key && (
-                        <span className="inline-block w-2 h-2 bg-[var(--filament)] border border-[var(--ink)]" />
-                      )}
-                    </div>
-                    <span className="text-xs font-bold uppercase leading-tight block">{p.name}</span>
-                    <span className="text-[9px] text-[var(--tungsten-gray)] block mt-1 truncate">{p.defaultModel}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Chat Messages */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-            {chatMessages.length === 0 && (
-              <div className="h-full flex items-center justify-center py-6">
-                <div className="w-full max-w-2xl text-center px-2">
-                  <h1
-                    className="relative w-fit mx-auto"
-                    style={{
-                      fontFamily: 'Archivo Black, sans-serif',
-                      fontSize: 'clamp(2.5rem, 8vw, 6rem)',
-                      lineHeight: 0.9,
-                      letterSpacing: '-0.02em',
-                      margin: '0 auto 20px'
-                    }}
-                  >
-                    BYOK
-                    <span
-                      className="absolute inset-0 text-transparent animate-flicker pointer-events-none"
-                      style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(4px, 4px)', zIndex: -1 }}
-                      aria-hidden="true"
-                    >
-                      BYOK
-                    </span>
-                  </h1>
-
-                  <p className="mx-auto text-sm md:text-base font-medium max-w-lg mb-2">
-                    Bring your own key. Zero middleman, zero markup, 100% direct inference.
-                  </p>
-                  <p className="mx-auto text-xs text-[var(--tungsten-gray)] uppercase tracking-wider mb-6">
-                    {Object.keys(PROVIDERS).length} providers ready. Credentials stay in browser.
-                  </p>
-
-                  <div className="border-[3px] border-[var(--ink)] max-w-sm mx-auto text-left bg-[var(--surface)]">
-                    {[
-                      ['EXECUTION', 'CLIENT-SIDE PROXY'],
-                      ['CREDENTIALS', 'LOCALSTORAGE ONLY'],
-                      ['ACTIVE PROVIDER', PROVIDERS[chatProvider]?.name || 'N/A'],
-                      ['ACTIVE MODEL', chatModel || 'N/A']
-                    ].map(([label, value], i, arr) => (
-                      <div
-                        key={label}
-                        className={`flex justify-between px-4 py-2 text-xs tracking-[0.04em] ${
-                          i < arr.length - 1 ? 'border-b border-[var(--tungsten-gray)]' : ''
-                        }`}
-                      >
-                        <span className="text-[var(--tungsten-gray)] font-semibold">{label}</span>
-                        <span>{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {chatMessages.map((m, i) => (
-              <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : ''}`}>
-                {m.role !== 'user' && (
-                  <div
-                    className="shrink-0 mt-0.5 w-8 h-8 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs shadow-[2px_2px_0_var(--ink)]"
-                  >
-                    {PROVIDERS[chatProvider]?.code?.charAt(0) || 'W'}
-                  </div>
-                )}
-                <div
-                  className={`max-w-[85%] md:max-w-[80%] border-[3px] border-[var(--ink)] px-4 py-3 shadow-[3px_3px_0_var(--ink)] ${
-                    m.role === 'user'
-                      ? 'bg-[var(--filament)] text-[var(--ink)] font-medium'
-                      : 'bg-[var(--surface)] text-[var(--concrete)]'
-                  }`}
-                >
-                  {m.role === 'user' ? (
-                    <div className="whitespace-pre-wrap break-words text-sm">{m.content}</div>
-                  ) : (
-                    <div>
-                      <div className="markdown text-xs md:text-sm leading-relaxed break-words">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
-                      {m.latencyMs && (
-                        <div className="mt-2 pt-2 border-t border-[var(--ink)] flex items-center gap-2 text-[10px] text-[var(--tungsten-gray)]">
-                          <span>⏱ {m.latencyMs}ms</span>
-                          <span>•</span>
-                          <span>~{m.tokens} tokens</span>
-                          <span>•</span>
-                          <span className="text-[var(--filament)]">{m.tokensPerSec} t/s</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {chatLoading && (
-              <div className="flex gap-3">
-                <div className="shrink-0 w-8 h-8 border-[3px] border-[var(--ink)] bg-[var(--surface2)] flex items-center justify-center text-[var(--filament)] font-bold text-xs animate-spin">
-                  W
-                </div>
-                <div className="border-[3px] border-[var(--ink)] bg-[var(--surface)] px-4 py-3 flex items-center gap-2 shadow-[3px_3px_0_var(--ink)]">
-                  <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-[var(--filament)] animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} className="h-6" />
-          </main>
-
-          {/* Composer */}
-          <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] p-3 md:p-4 shrink-0">
-            <div className="flex items-end gap-2 md:gap-3">
-              <div className="flex-1 border-[3px] border-[var(--ink)] bg-[var(--base)] p-2 shadow-[3px_3px_0_var(--ink)]">
-                <textarea
-                  rows={2}
-                  placeholder={`Send instruction to ${PROVIDERS[chatProvider]?.name} (${chatModel})...`}
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleChatSend();
-                    }
-                  }}
-                  className="w-full bg-transparent text-xs md:text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] resize-none focus:outline-none"
-                />
-              </div>
-              <button
-                onClick={handleChatSend}
-                disabled={chatLoading || !chatInput.trim() || !chatKey.trim()}
-                className="brut-btn text-xs py-3 px-4 shrink-0"
-              >
-                SEND ↗
-              </button>
-            </div>
-            <div className="flex justify-between items-center mt-2 text-[10px] text-[var(--tungsten-gray)]">
-              <span>{PROVIDERS[chatProvider]?.name} • {chatModel}</span>
-              {chatMessages.length > 0 && (
-                <button
-                  onClick={() => setChatMessages([])}
-                  className="hover:text-red-400 uppercase font-bold"
-                >
-                  CLEAR CONVERSATION
-                </button>
-              )}
-            </div>
-          </footer>
         </div>
       )}
     </div>
