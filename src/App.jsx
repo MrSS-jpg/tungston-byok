@@ -832,38 +832,41 @@ export default function App() {
           {/* Chat Messages */}
           <main className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4">
             {chatMessages.length === 0 && (
-              <div className="h-full flex items-center justify-center py-4 md:py-6">
-                <div className="w-full max-w-2xl text-center px-2">
+              <div className="min-h-full flex flex-col items-center justify-start sm:justify-center py-6 md:py-10">
+                <div className="w-full max-w-2xl text-center px-3 my-auto">
                   <h1
-                    className="relative w-fit mx-auto"
+                    className="relative w-fit mx-auto select-none mb-3"
                     style={{
                       fontFamily: 'Archivo Black, sans-serif',
-                      fontSize: 'clamp(2.2rem, 8vw, 5.5rem)',
-                      lineHeight: 0.9,
+                      fontSize: 'clamp(2.5rem, 7vw, 4.8rem)',
+                      lineHeight: 1.05,
                       letterSpacing: '-0.02em',
-                      margin: '0 auto 16px'
                     }}
                   >
                     BYOK
                     <span
                       className="absolute inset-0 text-transparent animate-flicker pointer-events-none"
-                      style={{ WebkitTextStroke: '1px var(--filament)', transform: 'translate(4px, 4px)', zIndex: -1 }}
+                      style={{
+                        WebkitTextStroke: '2px var(--filament)',
+                        transform: 'translate(4px, 4px)',
+                        zIndex: -1
+                      }}
                       aria-hidden="true"
                     >
                       BYOK
                     </span>
                   </h1>
 
-                  <p className="mx-auto text-xs md:text-base font-medium max-w-md mb-2">
+                  <p className="mx-auto text-xs sm:text-sm md:text-base font-semibold max-w-md text-[var(--concrete)] mb-2 leading-relaxed">
                     Bring your own key. Run it straight through — no middleman, no markup.
                   </p>
-                  <p className="mx-auto text-[11px] md:text-xs text-[var(--tungsten-gray)] uppercase tracking-wider mb-5">
+                  <p className="mx-auto text-[11px] md:text-xs text-[var(--tungsten-gray)] uppercase tracking-wider mb-6">
                     {Object.keys(PROVIDERS).length} providers ready. Credentials stay in browser.
                   </p>
 
                   {/* PROMINENT OPTION TO OPEN TESTING FIELD / COMPARISON ARENA */}
-                  <div className="border-[3px] border-[var(--filament)] bg-[var(--surface)] p-3 md:p-4 max-w-md mx-auto text-left shadow-[4px_4px_0_var(--ink)] mb-5">
-                    <div className="flex items-center justify-between mb-1.5">
+                  <div className="border-[3px] border-[var(--filament)] bg-[var(--surface)] p-3.5 md:p-4 max-w-md mx-auto text-left shadow-[4px_4px_0_var(--ink)] mb-6">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-[var(--filament)]">
                         ⚔️ MODEL COMPARISON ARENA
                       </span>
@@ -876,14 +879,14 @@ export default function App() {
                     </p>
                     <button
                       onClick={handleLaunchArenaFromChat}
-                      className="brut-btn w-full text-xs py-2 shadow-[2px_2px_0_var(--ink)]"
+                      className="brut-btn w-full text-xs py-2.5 shadow-[2px_2px_0_var(--ink)]"
                     >
                       OPEN DUAL TESTING ARENA ⚔️
                     </button>
                   </div>
 
                   {/* SPECIFICATION CARD */}
-                  <div className="border-[3px] border-[var(--ink)] max-w-sm mx-auto text-left bg-[var(--surface)]">
+                  <div className="border-[3px] border-[var(--ink)] max-w-md mx-auto text-left bg-[var(--surface)] shadow-[3px_3px_0_var(--ink)]">
                     {[
                       ['EXECUTION', 'CLIENT-SIDE PROXY'],
                       ['CREDENTIALS', 'LOCALSTORAGE ONLY'],
@@ -897,7 +900,7 @@ export default function App() {
                         }`}
                       >
                         <span className="text-[var(--tungsten-gray)] font-semibold">{label}</span>
-                        <span>{value}</span>
+                        <span className="text-[var(--concrete)] font-mono">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -1014,7 +1017,7 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* ── ARENA DUAL CONFIG BAR ── */}
           <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-2.5 md:px-6 md:py-3 shrink-0 max-h-[38vh] md:max-h-none overflow-y-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 relative">
               {/* ── ENGINE A CONFIG ── */}
               <div className="border-[2px] border-[var(--ink)] bg-[var(--base)] p-2.5 md:p-3 shadow-[2px_2px_0_var(--ink)] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
