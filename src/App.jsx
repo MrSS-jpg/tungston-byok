@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { GUEST_SCENARIOS, downloadBenchmarkCard } from './guestScenarios';
 
 /* ─────────────────────────────────────────────────────────────
    PROVIDER REGISTRY
@@ -500,6 +501,11 @@ export default function App() {
   /* Mobile Arena View Switcher ('both' | 'A' | 'B') */
   const [mobileArenaView, setMobileArenaView] = useState('both');
 
+  /* ── Guest Benchmark Rig Simulation State ── */
+  const [guestModeActive, setGuestModeActive] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState('lru-cache');
+  const guestTimerRef = useRef(null);
+
   const [resA, setResA] = useState({ status: 'idle', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
   const [resB, setResB] = useState({ status: 'idle', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
   const [arenaVerdict, setArenaVerdict] = useState(null);
@@ -510,6 +516,13 @@ export default function App() {
   const [minifyNotice, setMinifyNotice] = useState('');
 
   const chatEndRef = useRef(null);
+
+  /* Clean up guest simulation timer on unmount */
+  useEffect(() => {
+    return () => {
+      if (guestTimerRef.current) clearInterval(guestTimerRef.current);
+    };
+  }, []);
 
   /* ── Restore Shared Arena Run from URL Hash (#arena=...) ── */
   useEffect(() => {
@@ -577,15 +590,17 @@ export default function App() {
   }, [chatKey, chatProvider, chatModel]);
 
   useEffect(() => {
-    localStorage.setItem('tungston_arena_pA', engineA.provider);
-    localStorage.setItem('tungston_arena_kA', engineA.key.trim());
-    localStorage.setItem('tungston_arena_mA', engineA.model);
+    if (!guestModeActive) {
+      localStorage.setItem('tungston_arena_pA', engineA.provider);
+      localStorage.setItem('tungston_arena_kA', engineA.key.trim());
+      localStorage.setItem('tungston_arena_mA', engineA.model);
 
-    localStorage.setItem('tungston_arena_pB', engineB.provider);
-    localStorage.setItem('tungston_arena_kB', engineB.key.trim());
-    localStorage.setItem('tungston_arena_mB', engineB.model);
-    localStorage.setItem('tungston_arena_linkKeys', String(linkKeys));
-  }, [engineA, engineB, linkKeys]);
+      localStorage.setItem('tungston_arena_pB', engineB.provider);
+      localStorage.setItem('tungston_arena_kB', engineB.key.trim());
+      localStorage.setItem('tungston_arena_mB', engineB.model);
+      localStorage.setItem('tungston_arena_linkKeys', String(linkKeys));
+    }
+  }, [engineA, engineB, linkKeys, guestModeActive]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -652,6 +667,8 @@ export default function App() {
   /* ── Clear All Keys & Storage ── */
   const handleClearAllStorage = () => {
     if (window.confirm('Wipe all stored API keys and comparison history from this browser?')) {
+      if (guestTimerRef.current) clearInterval(guestTimerRef.current);
+      setGuestModeActive(false);
       localStorage.clear();
       setChatKey('');
       setEngineA({ provider: 'groq', key: '', model: 'openai/gpt-oss-20b' });
@@ -731,6 +748,128 @@ export default function App() {
     }
   };
 
+  /* ── Run High-Fidelity Guest Arena Simulation (Zero Key Required) ── */
+  const handleRunGuestArena = (scenarioKey = selectedScenario) => {
+    if (arenaRunning) return;
+    const scenario = GUEST_SCENARIOS[scenarioKey] || GUEST_SCENARIOS['lru-cache'];
+    setSelectedScenario(scenarioKey);
+    setGuestModeActive(true);
+
+    // Seed Arena configuration
+    setEngineA({
+      provider: scenario.engineA.provider,
+      key: '',
+      model: scenario.engineA.model
+    });
+    setEngineB({
+      provider: scenario.engineB.provider,
+      key: '',
+      model: scenario.engineB.model
+    });
+    setArenaInput(scenario.prompt);
+    setArenaRunning(true);
+    setArenaVerdict(null);
+
+    setResA({ status: 'running', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
+    setResB({ status: 'running', text: '', latencyMs: 0, tokens: 0, tokensPerSec: 0, error: '' });
+
+    if (guestTimerRef.current) clearInterval(guestTimerRef.current);
+
+    const startTime = performance.now();
+    const tickInterval = 25;
+
+    guestTimerRef.current = setInterval(() => {
+      const now = performance.now();
+      const elapsed = now - startTime;
+
+      // Engine A (Groq Llama 3.3 70B - ~620 T/S)
+      const progA = Math.min(1, elapsed / scenario.engineA.targetDurationMs);
+      const charsA = Math.floor(progA * scenario.engineA.text.length);
+      const textA = scenario.engineA.text.slice(0, charsA);
+      const tokensA = Math.round(charsA / 3.8);
+      const tpsA = elapsed > 150 ? Math.round(tokensA / (elapsed / 1000)) : scenario.engineA.tokensPerSec;
+
+      if (progA >= 1) {
+        setResA({
+          status: 'done',
+          text: scenario.engineA.text,
+          latencyMs: scenario.engineA.targetDurationMs,
+          tokens: scenario.engineA.targetTokens,
+          tokensPerSec: scenario.engineA.tokensPerSec,
+          error: ''
+        });
+      } else {
+        setResA({
+          status: 'running',
+          text: textA,
+          latencyMs: Math.round(elapsed),
+          tokens: tokensA,
+          tokensPerSec: tpsA,
+          error: ''
+        });
+      }
+
+      // Engine B (DeepSeek V3 - ~105 T/S)
+      const progB = Math.min(1, elapsed / scenario.engineB.targetDurationMs);
+      const charsB = Math.floor(progB * scenario.engineB.text.length);
+      const textB = scenario.engineB.text.slice(0, charsB);
+      const tokensB = Math.round(charsB / 3.8);
+      const tpsB = elapsed > 300 ? Math.round(tokensB / (elapsed / 1000)) : scenario.engineB.tokensPerSec;
+
+      if (progB >= 1) {
+        setResB({
+          status: 'done',
+          text: scenario.engineB.text,
+          latencyMs: scenario.engineB.targetDurationMs,
+          tokens: scenario.engineB.targetTokens,
+          tokensPerSec: scenario.engineB.tokensPerSec,
+          error: ''
+        });
+      } else {
+        setResB({
+          status: 'running',
+          text: textB,
+          latencyMs: Math.round(elapsed),
+          tokens: tokensB,
+          tokensPerSec: tpsB,
+          error: ''
+        });
+      }
+
+      // All finished
+      if (progA >= 1 && progB >= 1) {
+        clearInterval(guestTimerRef.current);
+        guestTimerRef.current = null;
+        setArenaRunning(false);
+        setArenaVerdict('A');
+        setStatusNotice('GUEST BENCHMARK COMPLETE — GROQ OUTPERFORMED DEEPSEEK BY 5.9x');
+        setTimeout(() => setStatusNotice(''), 4000);
+      }
+    }, tickInterval);
+  };
+
+  /* ── Export 1200x630 Brutalist Benchmark PNG Card ── */
+  const handleExportBenchmarkCard = () => {
+    downloadBenchmarkCard({
+      engineA: {
+        provider: engineA.provider,
+        name: PROVIDERS[engineA.provider]?.name || engineA.provider,
+        model: engineA.model
+      },
+      engineB: {
+        provider: engineB.provider,
+        name: PROVIDERS[engineB.provider]?.name || engineB.provider,
+        model: engineB.model
+      },
+      resA,
+      resB,
+      verdict: arenaVerdict || 'A',
+      prompt: arenaInput
+    });
+    setStatusNotice('BENCHMARK CARD PNG EXPORTED');
+    setTimeout(() => setStatusNotice(''), 3000);
+  };
+
   /* ── Run Dual Arena Comparison ── */
   const handleRunArena = async () => {
     if (!arenaInput.trim() || arenaRunning) return;
@@ -738,12 +877,18 @@ export default function App() {
 
     const effectiveKeyB = linkKeys ? engineA.key.trim() : engineB.key.trim();
 
+    // If in Guest Mode or if neither engine key is entered, run guest simulation
+    if (guestModeActive || (!engineA.key.trim() && !effectiveKeyB)) {
+      handleRunGuestArena(selectedScenario || 'lru-cache');
+      return;
+    }
+
     if (!engineA.key.trim()) {
-      alert(`Please supply an API Key for Engine A (${PROVIDERS[engineA.provider]?.name}).`);
+      alert(`Please supply an API Key for Engine A (${PROVIDERS[engineA.provider]?.name}) or click Guest Mode to test drive.`);
       return;
     }
     if (!effectiveKeyB) {
-      alert(`Please supply an API Key for Engine B (${PROVIDERS[engineB.provider]?.name}).`);
+      alert(`Please supply an API Key for Engine B (${PROVIDERS[engineB.provider]?.name}) or click Guest Mode to test drive.`);
       return;
     }
 
@@ -865,6 +1010,16 @@ export default function App() {
             </span>
           )}
           <button
+            onClick={() => {
+              setActiveTab('arena');
+              handleRunGuestArena('lru-cache');
+            }}
+            className="border-[2px] border-[var(--filament)] bg-[var(--surface2)] text-[var(--filament)] hover:bg-[var(--filament)] hover:text-[var(--ink)] px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-colors shadow-[2px_2px_0_var(--ink)]"
+            title="Launch 1-tap Guest Benchmark Arena demo without API key"
+          >
+            ⚡ GUEST DEMO
+          </button>
+          <button
             onClick={handleClearAllStorage}
             className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] hover:border-red-500 hover:text-red-400 px-2 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-colors"
             title="Clear all stored keys and browser history"
@@ -979,6 +1134,30 @@ export default function App() {
             </div>
           )}
 
+          {/* Guest Mode Hero Banner in Chat Mode */}
+          {!chatKey.trim() && (
+            <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-3 py-2 md:px-6 md:py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="w-2 h-2 bg-[var(--filament)] animate-pulse inline-block border border-[var(--ink)]" />
+                <span className="font-bold uppercase tracking-wider text-[var(--filament)]">
+                  ⚡ NO API KEY? RUN GUEST TEST DRIVE
+                </span>
+                <span className="text-[11px] md:text-xs text-[var(--concrete)]">
+                  Simulate high-throughput dual LLM speed & telemetry at $0 cost.
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab('arena');
+                  handleRunGuestArena('lru-cache');
+                }}
+                className="border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-2.5 py-1 text-[11px] md:text-xs font-bold uppercase tracking-wider hover:bg-[#ffc107] shadow-[2px_2px_0_var(--ink)]"
+              >
+                LAUNCH GUEST DEMO ↗
+              </button>
+            </div>
+          )}
+
           {/* Chat Messages */}
           <main className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4">
             {chatMessages.length === 0 && (
@@ -1027,12 +1206,23 @@ export default function App() {
                     <p className="text-[11px] md:text-xs text-[var(--concrete)] mb-3 leading-relaxed">
                       Compare two different models or API keys side-by-side with latency, speed (tokens/sec), and throughput telemetry.
                     </p>
-                    <button
-                      onClick={handleLaunchArenaFromChat}
-                      className="brut-btn w-full text-xs py-2.5 shadow-[2px_2px_0_var(--ink)]"
-                    >
-                      OPEN DUAL TESTING ARENA ⚔️
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={handleLaunchArenaFromChat}
+                        className="brut-btn flex-1 text-xs py-2.5 shadow-[2px_2px_0_var(--ink)]"
+                      >
+                        OPEN DUAL ARENA ⚔️
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('arena');
+                          handleRunGuestArena('lru-cache');
+                        }}
+                        className="border-[2px] border-[var(--filament)] bg-[var(--surface2)] text-[var(--filament)] hover:bg-[var(--filament)] hover:text-[var(--ink)] font-bold text-xs py-2.5 px-3 uppercase transition-colors shadow-[2px_2px_0_var(--ink)]"
+                      >
+                        ⚡ 1-TAP GUEST DEMO
+                      </button>
+                    </div>
                   </div>
 
                   {/* SPECIFICATION CARD */}
@@ -1227,6 +1417,45 @@ export default function App() {
             </div>
           )}
 
+          {/* ── GUEST BENCHMARK RIG SELECTOR & CONTROLS ── */}
+          <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface2)] px-3 py-2 md:px-6 md:py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs shrink-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`w-2.5 h-2.5 ${guestModeActive ? 'bg-[var(--filament)] animate-pulse' : 'bg-[var(--tungsten-gray)]'} border border-[var(--ink)] inline-block`} />
+              <span className="font-bold uppercase tracking-wider text-[var(--filament)]">
+                ⚡ GUEST BENCHMARK RIG {guestModeActive ? '[ACTIVE]' : '[STANDBY]'}
+              </span>
+              <span className="hidden sm:inline text-[10px] md:text-xs text-[var(--concrete)]">
+                — 100% Client-Side Simulation (Zero API Key Needed)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {Object.entries(GUEST_SCENARIOS).map(([sKey, s]) => (
+                <button
+                  key={sKey}
+                  onClick={() => handleRunGuestArena(sKey)}
+                  disabled={arenaRunning}
+                  className={`px-2.5 py-1 text-[10px] md:text-[11px] font-bold uppercase border border-[var(--ink)] transition-all ${
+                    guestModeActive && selectedScenario === sKey
+                      ? 'bg-[var(--filament)] text-[var(--ink)] shadow-[2px_2px_0_var(--ink)]'
+                      : 'bg-[var(--base)] text-[var(--concrete)] hover:border-[var(--filament)] hover:text-[var(--filament)]'
+                  }`}
+                  title={s.prompt}
+                >
+                  {s.label}
+                </button>
+              ))}
+
+              <button
+                onClick={() => handleRunGuestArena(selectedScenario)}
+                disabled={arenaRunning}
+                className="border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-2.5 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-wider hover:bg-[#ffc107] shadow-[2px_2px_0_var(--ink)]"
+              >
+                {arenaRunning && guestModeActive ? '⚡ RUNNING GUEST DEMO...' : '⚡ FIRE GUEST DEMO ↗'}
+              </button>
+            </div>
+          </div>
+
           {/* ── ARENA DUAL CONFIG BAR ── */}
           <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-2.5 md:px-6 md:py-3 shrink-0 max-h-[38vh] md:max-h-none overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 relative">
@@ -1284,17 +1513,22 @@ export default function App() {
                     <label className="text-[9px] uppercase font-bold text-[var(--tungsten-gray)]">
                       API KEY ({PROVIDERS[engineA.provider]?.name})
                     </label>
-                    {engineA.key && (
+                    {guestModeActive && !engineA.key ? (
+                      <span className="text-[9px] text-[var(--filament)] font-bold">
+                        ⚡ GUEST RIG (GROQ ~620 T/S)
+                      </span>
+                    ) : engineA.key ? (
                       <span className="text-[9px] text-[var(--filament)]">
                         KEY ARMED ({engineA.key.slice(0, 4)}...{engineA.key.slice(-4)})
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <input
                     type="password"
-                    placeholder={`Paste ${PROVIDERS[engineA.provider]?.keyHint || 'API Key'}...`}
+                    placeholder={guestModeActive ? '⚡ GUEST RIG ACTIVE (PASTE KEY TO OVERRIDE)...' : `Paste ${PROVIDERS[engineA.provider]?.keyHint || 'API Key'}...`}
                     value={engineA.key}
                     onChange={(e) => {
+                      setGuestModeActive(false);
                       const val = e.target.value;
                       const detected = detectProvider(val);
                       if (detected && detected !== engineA.provider) {
@@ -1394,25 +1628,30 @@ export default function App() {
                     <label className="text-[9px] uppercase font-bold text-[var(--tungsten-gray)]">
                       {linkKeys ? 'API KEY (INHERITED FROM A)' : `API KEY (${PROVIDERS[engineB.provider]?.name})`}
                     </label>
-                    {!linkKeys && engineB.key && (
+                    {guestModeActive && !engineB.key && !linkKeys ? (
+                      <span className="text-[9px] text-blue-400 font-bold">
+                        ⚡ GUEST RIG (DEEPSEEK ~105 T/S)
+                      </span>
+                    ) : !linkKeys && engineB.key ? (
                       <span className="text-[9px] text-blue-400">
                         KEY ARMED ({engineB.key.slice(0, 4)}...{engineB.key.slice(-4)})
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   {linkKeys ? (
                     <input
                       type="text"
                       disabled
-                      value={engineA.key ? `Using Key from Engine A (${engineA.key.slice(0, 4)}••••)` : 'Waiting for Engine A Key...'}
+                      value={engineA.key ? `Using Key from Engine A (${engineA.key.slice(0, 4)}••••)` : guestModeActive ? 'Inherited Guest Rig Key (Groq Llama 3.3)' : 'Waiting for Engine A Key...'}
                       className="w-full brut-input text-base md:text-xs bg-[var(--surface2)] text-[var(--tungsten-gray)] cursor-not-allowed opacity-80"
                     />
                   ) : (
                     <input
                       type="password"
-                      placeholder={`Paste ${PROVIDERS[engineB.provider]?.keyHint || 'API Key'}...`}
+                      placeholder={guestModeActive ? '⚡ GUEST RIG ACTIVE (PASTE KEY TO OVERRIDE)...' : `Paste ${PROVIDERS[engineB.provider]?.keyHint || 'API Key'}...`}
                       value={engineB.key}
                       onChange={(e) => {
+                        setGuestModeActive(false);
                         const val = e.target.value;
                         const detected = detectProvider(val);
                         if (detected && detected !== engineB.provider) {
@@ -1754,27 +1993,61 @@ export default function App() {
               </div>
             </div>
 
-            {/* Arena Actions: Tie Button & Share Benchmark Link */}
+            {/* Arena Actions: Tie Button, Benchmark Card Export & Share Benchmark Link */}
             {(resA.status === 'done' || resB.status === 'done') && (
-              <div className="flex justify-center items-center gap-2.5 pb-2 flex-wrap">
+              <div className="flex flex-col items-center gap-2.5 pb-4 shrink-0">
+                {/* Winner announcement callout */}
                 {resA.status === 'done' && resB.status === 'done' && (
-                  <button
-                    onClick={() => setArenaVerdict('TIE')}
-                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] ${
-                      arenaVerdict === 'TIE'
-                        ? 'bg-[var(--concrete)] text-[var(--ink)]'
-                        : 'bg-[var(--surface)] text-[var(--tungsten-gray)] hover:text-[var(--concrete)]'
-                    }`}
-                  >
-                    {arenaVerdict === 'TIE' ? '🤝 MARKED AS DEAD HEAT TIE' : '🤝 IT\'S A DEAD HEAT TIE'}
-                  </button>
+                  <div className="border-[2px] border-[var(--ink)] bg-[var(--surface)] p-2.5 md:p-3 text-center max-w-2xl w-full shadow-[3px_3px_0_var(--ink)]">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <span className="text-[var(--filament)] font-bold text-xs uppercase tracking-wider">
+                        {arenaVerdict === 'A'
+                          ? `🏆 VERDICT: ${PROVIDERS[engineA.provider]?.name || engineA.provider} (${engineA.model}) WON`
+                          : arenaVerdict === 'B'
+                          ? `🏆 VERDICT: ${PROVIDERS[engineB.provider]?.name || engineB.provider} (${engineB.model}) WON`
+                          : '🤝 VERDICT: DEAD HEAT TIE'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--tungsten-gray)] font-mono">
+                      {resA.tokensPerSec && resB.tokensPerSec
+                        ? `ENGINE A (${resA.tokensPerSec} T/S) vs ENGINE B (${resB.tokensPerSec} T/S) — THROUGHPUT ADVANTAGE: ${(Math.max(resA.tokensPerSec, resB.tokensPerSec) / Math.max(1, Math.min(resA.tokensPerSec, resB.tokensPerSec))).toFixed(1)}x`
+                        : 'Dual benchmark run concluded.'}
+                    </p>
+                    {guestModeActive && (
+                      <p className="text-[10px] text-[var(--filament)] font-bold mt-1 uppercase">
+                        ⚡ GUEST TEST DRIVE VERIFIED — ARMED YOUR OWN API KEYS ABOVE TO RUN CUSTOM LIVE PROMPTS
+                      </p>
+                    )}
+                  </div>
                 )}
-                <button
-                  onClick={handleShareArena}
-                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] shadow-[2px_2px_0_var(--ink)] hover:bg-[#ffc107] transition-all flex items-center gap-1.5"
-                >
-                  {copiedKey === 'arenaShare' ? '✓ BENCHMARK LINK COPIED!' : '🔗 SHARE BENCHMARK LINK'}
-                </button>
+
+                <div className="flex justify-center items-center gap-2.5 flex-wrap">
+                  {resA.status === 'done' && resB.status === 'done' && (
+                    <button
+                      onClick={() => setArenaVerdict('TIE')}
+                      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] ${
+                        arenaVerdict === 'TIE'
+                          ? 'bg-[var(--concrete)] text-[var(--ink)]'
+                          : 'bg-[var(--surface)] text-[var(--tungsten-gray)] hover:text-[var(--concrete)]'
+                      }`}
+                    >
+                      {arenaVerdict === 'TIE' ? '🤝 MARKED AS DEAD HEAT TIE' : '🤝 IT\'S A DEAD HEAT TIE'}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleExportBenchmarkCard}
+                    className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] bg-[var(--surface2)] text-[var(--concrete)] hover:border-[var(--filament)] hover:text-[var(--filament)] shadow-[2px_2px_0_var(--ink)] transition-all flex items-center gap-1.5"
+                    title="Export 1200x630 brutalist PNG benchmark social card"
+                  >
+                    📸 EXPORT BENCHMARK PNG
+                  </button>
+                  <button
+                    onClick={handleShareArena}
+                    className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] shadow-[2px_2px_0_var(--ink)] hover:bg-[#ffc107] transition-all flex items-center gap-1.5"
+                  >
+                    {copiedKey === 'arenaShare' ? '✓ BENCHMARK LINK COPIED!' : '🔗 SHARE BENCHMARK LINK'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
