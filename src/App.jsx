@@ -230,6 +230,49 @@ function estimateTokens(text) {
   return Math.max(1, Math.round(text.length / 3.8));
 }
 
+export function encodeArenaShare(data) {
+  const json = JSON.stringify(data);
+  return btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+}
+
+export function decodeArenaShare(hashStr) {
+  try {
+    const decoded = decodeURIComponent(Array.prototype.map.call(atob(hashStr), (c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(decoded);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function industrialMinify(text) {
+  if (!text || !text.trim()) return { text: '', savedChars: 0, savedTokens: 0, pctSaved: 0 };
+  const origLen = text.length;
+  const origTokens = Math.max(1, Math.round(origLen / 3.8));
+  let cleaned = text;
+  try {
+    const parsed = JSON.parse(text.trim());
+    cleaned = JSON.stringify(parsed);
+  } catch {
+    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+    cleaned = cleaned.split('\n').map(line => {
+      const idx = line.indexOf('//');
+      if (idx !== -1 && !line.includes('://')) {
+        return line.slice(0, idx).trimEnd();
+      }
+      return line.trimEnd();
+    }).filter((line, i, arr) => {
+      if (line === '' && (i === 0 || arr[i - 1] === '')) return false;
+      return true;
+    }).join('\n').trim();
+  }
+  const newLen = cleaned.length;
+  const newTokens = Math.max(1, Math.round(newLen / 3.8));
+  const savedChars = origLen - newLen;
+  const savedTokens = Math.max(0, origTokens - newTokens);
+  const pctSaved = origLen > 0 ? Math.max(0, Math.round((savedChars / origLen) * 100)) : 0;
+  return { text: cleaned, savedChars, savedTokens, pctSaved };
+}
+
 const PRESET_PROMPTS = [
   {
     label: '⚡ LRU Cache (TS)',
@@ -463,8 +506,64 @@ export default function App() {
   const [arenaHistory, setArenaHistory] = useState([]);
   const [copiedKey, setCopiedKey] = useState(null);
   const [statusNotice, setStatusNotice] = useState('');
+  const [sharedReplayBanner, setSharedReplayBanner] = useState(null);
+  const [minifyNotice, setMinifyNotice] = useState('');
 
   const chatEndRef = useRef(null);
+
+  /* ── Restore Shared Arena Run from URL Hash (#arena=...) ── */
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#arena=')) {
+      const shareData = decodeArenaShare(hash.slice(7));
+      if (shareData) {
+        setActiveTab('arena');
+        if (shareData.prompt) setArenaInput(shareData.prompt);
+        if (shareData.systemPrompt) {
+          setSystemPrompt(shareData.systemPrompt);
+          setShowSystemPrompt(true);
+        }
+        if (shareData.engineA) {
+          setEngineA(prev => ({
+            ...prev,
+            provider: shareData.engineA.provider || prev.provider,
+            model: shareData.engineA.model || prev.model
+          }));
+        }
+        if (shareData.engineB) {
+          setEngineB(prev => ({
+            ...prev,
+            provider: shareData.engineB.provider || prev.provider,
+            model: shareData.engineB.model || prev.model
+          }));
+        }
+        if (shareData.resA && shareData.resA.text) {
+          setResA({
+            status: 'done',
+            text: shareData.resA.text,
+            latencyMs: shareData.resA.latencyMs || 0,
+            tokens: shareData.resA.tokens || 0,
+            tokensPerSec: shareData.resA.tokensPerSec || 0,
+            error: ''
+          });
+        }
+        if (shareData.resB && shareData.resB.text) {
+          setResB({
+            status: 'done',
+            text: shareData.resB.text,
+            latencyMs: shareData.resB.latencyMs || 0,
+            tokens: shareData.resB.tokens || 0,
+            tokensPerSec: shareData.resB.tokensPerSec || 0,
+            error: ''
+          });
+        }
+        if (shareData.verdict) {
+          setArenaVerdict(shareData.verdict);
+        }
+        setSharedReplayBanner(shareData);
+      }
+    }
+  }, []);
 
   /* ── Save to localStorage ── */
   useEffect(() => {
@@ -497,6 +596,57 @@ export default function App() {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  /* ── Share Arena Benchmark via URL Hash ── */
+  const handleShareArena = () => {
+    const payload = {
+      prompt: arenaInput,
+      systemPrompt: systemPrompt || undefined,
+      engineA: { provider: engineA.provider, model: engineA.model },
+      engineB: { provider: engineB.provider, model: engineB.model },
+      resA: resA.status === 'done' ? { latencyMs: resA.latencyMs, tokens: resA.tokens, tokensPerSec: resA.tokensPerSec, text: resA.text } : undefined,
+      resB: resB.status === 'done' ? { latencyMs: resB.latencyMs, tokens: resB.tokens, tokensPerSec: resB.tokensPerSec, text: resB.text } : undefined,
+      verdict: arenaVerdict || undefined,
+      createdAt: Date.now()
+    };
+    const encoded = encodeArenaShare(payload);
+    const url = `${window.location.origin}${window.location.pathname}#arena=${encoded}`;
+    navigator.clipboard.writeText(url);
+    window.history.replaceState(null, '', '#arena=' + encoded);
+    setCopiedKey('arenaShare');
+    setStatusNotice('BENCHMARK LINK GENERATED & COPIED TO CLIPBOARD');
+    setTimeout(() => {
+      setCopiedKey(null);
+      setStatusNotice('');
+    }, 3000);
+  };
+
+  /* ── Industrial Minify Handlers ── */
+  const handleMinifyChat = () => {
+    if (!chatInput.trim()) return;
+    const res = industrialMinify(chatInput);
+    if (res.savedChars > 0) {
+      setChatInput(res.text);
+      setMinifyNotice(`MINIFIED: -${res.savedTokens} TOK (-${res.pctSaved}%)`);
+      setTimeout(() => setMinifyNotice(''), 3000);
+    } else {
+      setMinifyNotice('ALREADY FULLY COMPACTED');
+      setTimeout(() => setMinifyNotice(''), 2000);
+    }
+  };
+
+  const handleMinifyArena = () => {
+    if (!arenaInput.trim()) return;
+    const res = industrialMinify(arenaInput);
+    if (res.savedChars > 0) {
+      setArenaInput(res.text);
+      setMinifyNotice(`MINIFIED: -${res.savedTokens} TOK (-${res.pctSaved}%)`);
+      setTimeout(() => setMinifyNotice(''), 3000);
+    } else {
+      setMinifyNotice('ALREADY FULLY COMPACTED');
+      setTimeout(() => setMinifyNotice(''), 2000);
+    }
   };
 
   /* ── Clear All Keys & Storage ── */
@@ -963,6 +1113,32 @@ export default function App() {
 
           {/* Composer */}
           <footer className="border-t-[3px] border-[var(--ink)] bg-[var(--surface)] p-2.5 md:p-4 shrink-0 pb-[max(10px,env(safe-area-inset-bottom))]">
+            {/* Context Gauge & Minifier Bar */}
+            <div className="flex justify-between items-center mb-1.5 text-[9px] md:text-[10px] text-[var(--tungsten-gray)] flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span>EST. PROMPT: ~{estimateTokens(chatInput)} TOK</span>
+                {chatInput && (
+                  <span className="text-[var(--filament)] font-bold">
+                    ({((estimateTokens(chatInput) / 8192) * 100).toFixed(1)}% OF 8K)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {minifyNotice && (
+                  <span className="text-[var(--filament)] font-bold animate-pulse">{minifyNotice}</span>
+                )}
+                {chatInput.trim() && (
+                  <button
+                    onClick={handleMinifyChat}
+                    className="hover:text-[var(--filament)] uppercase font-bold text-[9px] border border-[var(--ink)] bg-[var(--surface2)] px-1.5 py-0.5"
+                    title="Industrial Minify prompt (strip comments & redundant whitespace)"
+                  >
+                    ✂️ INDUSTRIAL MINIFY
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="flex items-end gap-2 md:gap-3">
               <div className="flex-1 border-[2px] md:border-[3px] border-[var(--ink)] bg-[var(--base)] p-2 shadow-[2px_2px_0_var(--ink)] md:shadow-[3px_3px_0_var(--ink)]">
                 <textarea
@@ -978,6 +1154,14 @@ export default function App() {
                   }}
                   className="w-full bg-transparent text-base md:text-sm text-[var(--concrete)] placeholder:text-[var(--tungsten-gray)] resize-none focus:outline-none"
                 />
+                {chatInput && (
+                  <div className="w-full h-1 bg-[var(--surface2)] border-t border-[var(--ink)] mt-1 overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--filament)] transition-all duration-150"
+                      style={{ width: `${Math.min(100, (estimateTokens(chatInput) / 8192) * 100)}%` }}
+                    />
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleChatSend}
@@ -1015,6 +1199,34 @@ export default function App() {
       ───────────────────────────────────────────────────────────── */}
       {activeTab === 'arena' && (
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* ── SHARED BENCHMARK REPLAY BANNER ── */}
+          {sharedReplayBanner && (
+            <div className="border-b-[3px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] px-3 py-2 md:px-6 md:py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs font-bold shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="animate-pulse">⚡</span>
+                <span className="uppercase tracking-wider">
+                  SHARED BENCHMARK REPLAY: {sharedReplayBanner.engineA?.model} VS {sharedReplayBanner.engineB?.model}
+                </span>
+                {sharedReplayBanner.verdict && (
+                  <span className="border border-[var(--ink)] bg-[var(--base)] text-[var(--filament)] px-2 py-0.5 text-[10px]">
+                    VERDICT: ENGINE {sharedReplayBanner.verdict} WON
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSharedReplayBanner(null);
+                    window.history.replaceState(null, '', window.location.pathname);
+                  }}
+                  className="border border-[var(--ink)] bg-[var(--base)] text-[var(--concrete)] hover:text-[var(--filament)] px-2 py-0.5 text-[10px] uppercase font-bold"
+                >
+                  ✕ DISMISS REPLAY
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── ARENA DUAL CONFIG BAR ── */}
           <div className="border-b-[3px] border-[var(--ink)] bg-[var(--surface)] px-3 py-2.5 md:px-6 md:py-3 shrink-0 max-h-[38vh] md:max-h-none overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 relative">
@@ -1292,21 +1504,52 @@ export default function App() {
                   </button>
 
                   {arenaInput && (
-                    <button
-                      onClick={() => setArenaInput('')}
-                      disabled={arenaRunning}
-                      className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2.5 py-1 text-[10px] font-bold uppercase hover:text-red-400"
-                    >
-                      CLEAR
-                    </button>
+                    <div className="flex gap-1 md:flex-col">
+                      <button
+                        onClick={handleMinifyArena}
+                        disabled={arenaRunning}
+                        className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2 py-1 text-[10px] font-bold uppercase hover:text-[var(--filament)] hover:border-[var(--filament)] transition-colors"
+                        title="Industrial Minify prompt (strip comments & redundant whitespace)"
+                      >
+                        ✂️ MINIFY
+                      </button>
+                      <button
+                        onClick={() => setArenaInput('')}
+                        disabled={arenaRunning}
+                        className="border-[2px] border-[var(--ink)] bg-[var(--surface2)] px-2 py-1 text-[10px] font-bold uppercase hover:text-red-400"
+                      >
+                        CLEAR
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className="flex justify-between items-center mt-2 text-[9px] md:text-[10px] text-[var(--tungsten-gray)]">
-                <span>EST. PROMPT TOKENS: ~{estimateTokens(arenaInput)}</span>
-                <span className="hidden sm:inline">SHORTCUT: CTRL+ENTER</span>
+              <div className="flex justify-between items-center mt-2 text-[9px] md:text-[10px] text-[var(--tungsten-gray)] flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span>EST. PROMPT TOKENS: ~{estimateTokens(arenaInput)}</span>
+                  {arenaInput && (
+                    <span className="text-[var(--filament)] font-bold">
+                      ({((estimateTokens(arenaInput) / 8192) * 100).toFixed(1)}% OF 8K / {((estimateTokens(arenaInput) / 131072) * 100).toFixed(2)}% OF 128K)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {minifyNotice && (
+                    <span className="text-[var(--filament)] font-bold animate-pulse">{minifyNotice}</span>
+                  )}
+                  <span className="hidden sm:inline">SHORTCUT: CTRL+ENTER</span>
+                </div>
               </div>
+
+              {arenaInput && (
+                <div className="w-full h-1 bg-[var(--surface2)] border-t border-[var(--ink)] mt-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--filament)] transition-all duration-150"
+                    style={{ width: `${Math.min(100, (estimateTokens(arenaInput) / 8192) * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* ── MOBILE RESULTS VIEW SELECTOR (< 768px) ── */}
@@ -1511,18 +1754,26 @@ export default function App() {
               </div>
             </div>
 
-            {/* Tie Button in Arena Mode */}
-            {resA.status === 'done' && resB.status === 'done' && (
-              <div className="flex justify-center pb-2">
+            {/* Arena Actions: Tie Button & Share Benchmark Link */}
+            {(resA.status === 'done' || resB.status === 'done') && (
+              <div className="flex justify-center items-center gap-2.5 pb-2 flex-wrap">
+                {resA.status === 'done' && resB.status === 'done' && (
+                  <button
+                    onClick={() => setArenaVerdict('TIE')}
+                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] ${
+                      arenaVerdict === 'TIE'
+                        ? 'bg-[var(--concrete)] text-[var(--ink)]'
+                        : 'bg-[var(--surface)] text-[var(--tungsten-gray)] hover:text-[var(--concrete)]'
+                    }`}
+                  >
+                    {arenaVerdict === 'TIE' ? '🤝 MARKED AS DEAD HEAT TIE' : '🤝 IT\'S A DEAD HEAT TIE'}
+                  </button>
+                )}
                 <button
-                  onClick={() => setArenaVerdict('TIE')}
-                  className={`px-3 py-1 md:px-4 md:py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] ${
-                    arenaVerdict === 'TIE'
-                      ? 'bg-[var(--concrete)] text-[var(--ink)]'
-                      : 'bg-[var(--surface)] text-[var(--tungsten-gray)] hover:text-[var(--concrete)]'
-                  }`}
+                  onClick={handleShareArena}
+                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider border-[2px] border-[var(--ink)] bg-[var(--filament)] text-[var(--ink)] shadow-[2px_2px_0_var(--ink)] hover:bg-[#ffc107] transition-all flex items-center gap-1.5"
                 >
-                  {arenaVerdict === 'TIE' ? '🤝 MARKED AS DEAD HEAT TIE' : '🤝 IT\'S A DEAD HEAT TIE'}
+                  {copiedKey === 'arenaShare' ? '✓ BENCHMARK LINK COPIED!' : '🔗 SHARE BENCHMARK LINK'}
                 </button>
               </div>
             )}
